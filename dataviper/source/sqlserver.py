@@ -26,6 +26,7 @@ class SQLServer():
         query = self.__get_schema_query(table_name)
         schema_df = pd.read_sql(query, self.__conn)
         schema_df = schema_df[['column_name', 'data_type', 'column_default']].set_index('column_name')
+        schema_df.index = schema_df.index.str.lower()
         return Profile(table_name, schema_df)
 
 
@@ -39,9 +40,10 @@ class SQLServer():
         total = null_count_df['total'][0]
         null_count_df = null_count_df.drop('total', axis=1)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
-        print(null_count_df)
-        print(total)
-        # print(profile.schema_df)
+        null_count_df['null_percentage'] = (null_count_df['null_count'] / total) * 100
+        profile.schema_df = profile.schema_df.join(null_count_df)
+        return profile
+
 
     def __count_null_query(self, profile):
         queries = ['(SELECT COUNT(1) FROM {}) as Total'.format(profile.table_name)]
