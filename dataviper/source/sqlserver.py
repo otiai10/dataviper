@@ -25,7 +25,7 @@ class SQLServer():
     def get_schema(self, table_name):
         query = self.__get_schema_query(table_name)
         schema_df = pd.read_sql(query, self.__conn)
-        schema_df = schema_df[['column_name', 'data_type', 'column_default']].set_index('column_name')
+        schema_df = schema_df[['column_name', 'data_type']].set_index('column_name')
         schema_df.index = schema_df.index.str.lower()
         return Profile(table_name, schema_df)
 
@@ -58,3 +58,30 @@ class SQLServer():
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         return '(SELECT count(1) FROM {} WHERE {} is NULL) as {}'.format(table_name, column_name, column_name)
+
+
+    def get_deviation(self, profile):
+        devis = pd.DataFrame()
+        for column_name in profile.schema_df.index:
+            data_type = profile.schema_df.at[column_name, 'data_type']
+            if not data_type in ('int'):
+                continue
+            df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
+            devis = devis.append(df)
+        profile.schema_df = profile.schema_df.join(devis, how='left')
+        return profile
+
+
+    def __get_deviation_df_for_a_column(self, table_name, column_name):
+        query = self.__get_deviation_query_for_a_column(table_name, column_name)
+        df = pd.read_sql(query, self.__conn)
+        df.index = [column_name]
+        return df
+
+
+    def __get_deviation_query_for_a_column(self, table_name, column_name):
+        """
+        TODO: Don't use .format, use SQL placeholder and parameter markers.
+              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+        """
+        return 'SELECT MIN({0}) as min, MAX({0}) as max, AVG({0}) as avg, STDEV({0}) as std FROM {1}'.format(column_name, table_name)

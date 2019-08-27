@@ -15,5 +15,10 @@ class Client():
     def get_schema(self, table_name):
         return self.source.get_schema(table_name)
 
+
     def count_null(self, profile):
         return self.source.count_null(profile)
+
+
+    def get_deviation(self, profile):
+        return self.source.get_deviation(profile)
