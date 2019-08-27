@@ -22,3 +22,7 @@ class Client():
 
     def get_deviation(self, profile):
         return self.source.get_deviation(profile)
+
+
+    def get_variation(self, profile):
+        return self.source.get_variation(profile)

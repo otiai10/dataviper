@@ -37,10 +37,13 @@ class SQLServer():
     def count_null(self, profile):
         query = self.__count_null_query(profile)
         null_count_df = pd.read_sql(query, self.__conn)
+        # {{{ TODO: Separete to another method
         total = null_count_df['total'][0]
+        profile.total = total
+        # }}}
         null_count_df = null_count_df.drop('total', axis=1)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
-        null_count_df['null_percentage'] = (null_count_df['null_count'] / total) * 100
+        null_count_df['null_%'] = (null_count_df['null_count'] / total) * 100
         profile.schema_df = profile.schema_df.join(null_count_df)
         return profile
 
@@ -85,3 +88,28 @@ class SQLServer():
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         return 'SELECT MIN({0}) as min, MAX({0}) as max, AVG({0}) as avg, STDEV({0}) as std FROM {1}'.format(column_name, table_name)
+
+
+    def get_variation(self, profile):
+        variations = pd.DataFrame()
+        for column_name in profile.schema_df.index:
+            df = self.__get_variation_df_for_a_column(profile.table_name, column_name)
+            variations = variations.append(df)
+        profile.schema_df = profile.schema_df.join(variations, how='left')
+        profile.schema_df['unique_%'] = (profile.schema_df['unique_count'] / profile.total) * 100
+        return profile
+
+
+    def __get_variation_df_for_a_column(self, table_name, column_name):
+        query = self.__get_variation_query_for_a_column(table_name, column_name)
+        df = pd.read_sql(query, self.__conn)
+        df.index = [column_name]
+        return df
+
+
+    def __get_variation_query_for_a_column(self, table_name, column_name):
+        """
+        TODO: Don't use .format, use SQL placeholder and parameter markers.
+              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+        """
+        return 'SELECT COUNT(DISTINCT {0}) as unique_count FROM {1}'.format(column_name, table_name)
