@@ -113,3 +113,33 @@ class SQLServer():
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         return 'SELECT COUNT(DISTINCT {0}) as unique_count FROM {1}'.format(column_name, table_name)
+
+
+    def get_examples(self, profile, count=8):
+        aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
+        top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
+        for column_name in top_df.columns.values:
+            aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
+        last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
+        for column_name in last_df.columns.values:
+            aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
+        profile.schema_df = profile.schema_df.join(aggregation, how='left')
+        return profile
+
+
+    def __get_examples_query(self, profile, count=8, desc=False):
+        """
+        TODO: Don't use .format, use SQL placeholder and parameter markers.
+              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+        """
+        return 'SELECT TOP {0} * FROM {1} ORDER BY {2} {3}'.format(count, profile.table_name, self.infer_primary_key(profile), 'DESC' if desc else 'ASC')
+
+
+    def infer_primary_key(self, profile):
+        if 'key' in profile.schema_df['data_type'].values:
+            return profile.schema_df[profile.schema_df['data_type'] == 'key'].index[0]
+        if 'date' in profile.schema_df['data_type'].values:
+            return profile.schema_df[profile.schema_df['data_type'] == 'date'].index[0]
+        if 'unique_count' in profile.schema_df.columns:
+            return profile.schema_df['unique_count'].idxmax()
+        return profile.schema_df.index[0]

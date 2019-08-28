@@ -26,3 +26,7 @@ class Client():
 
     def get_variation(self, profile):
         return self.source.get_variation(profile)
+
+
+    def get_examples(self, profile):
+        return self.source.get_examples(profile)
