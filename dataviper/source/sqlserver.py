@@ -62,14 +62,14 @@ class SQLServer():
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return '(SELECT count(1) FROM {} WHERE {} is NULL) as {}'.format(table_name, column_name, column_name)
+        return '(SELECT count(1) FROM {} WHERE [{}] is NULL) as [{}]'.format(table_name, column_name, column_name)
 
 
     def get_deviation(self, profile):
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
-            if not data_type in ('int'):
+            if not data_type in ('int', 'float'):
                 continue
             df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
             devis = devis.append(df)
@@ -89,7 +89,7 @@ class SQLServer():
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return 'SELECT MIN({0}) as min, MAX({0}) as max, AVG({0}) as avg, STDEV({0}) as std FROM {1}'.format(column_name, table_name)
+        return 'SELECT MIN([{0}]) as min, MAX([{0}]) as max, AVG([{0}]) as avg, STDEV([{0}]) as std FROM {1}'.format(column_name, table_name)
 
 
     def get_variation(self, profile):
@@ -114,7 +114,7 @@ class SQLServer():
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return 'SELECT COUNT(DISTINCT {0}) as unique_count FROM {1}'.format(column_name, table_name)
+        return 'SELECT COUNT(DISTINCT [{0}]) as unique_count FROM {1}'.format(column_name, table_name)
 
 
     def get_examples(self, profile, count=8):
@@ -134,7 +134,7 @@ class SQLServer():
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return 'SELECT TOP {0} * FROM {1} ORDER BY {2} {3}'.format(count, profile.table_name, self.infer_primary_key(profile), 'DESC' if desc else 'ASC')
+        return 'SELECT TOP {0} * FROM {1} ORDER BY [{2}] {3}'.format(count, profile.table_name, self.infer_primary_key(profile), 'DESC' if desc else 'ASC')
 
 
     def infer_primary_key(self, profile):
