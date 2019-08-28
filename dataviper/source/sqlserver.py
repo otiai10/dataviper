@@ -8,15 +8,17 @@ class SQLServer():
     and query builder as well.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config={}, sigfig=4):
         self.config = config
+        self.sigfig = sigfig
 
 
     def connect(self, config):
+        config = config if config is not None else self.config
         self.__conn = pypyodbc.connect(
             driver=config.get('driver', '{ODBC Driver 17 for SQL Server}'),
             server=config.get('server', 'localhost'),
-            database=config.get('database'),
+            database=config.get('database', ''),
             trusted_connection=config.get('use_trusted_connection', 'Yes'),
         )
         return self.__conn
@@ -43,7 +45,7 @@ class SQLServer():
         # }}}
         null_count_df = null_count_df.drop('total', axis=1)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
-        null_count_df['null_%'] = (null_count_df['null_count'] / total) * 100
+        null_count_df['null_%'] = round((null_count_df['null_count'] / total) * 100, self.sigfig)
         profile.schema_df = profile.schema_df.join(null_count_df)
         return profile
 
@@ -96,7 +98,7 @@ class SQLServer():
             df = self.__get_variation_df_for_a_column(profile.table_name, column_name)
             variations = variations.append(df)
         profile.schema_df = profile.schema_df.join(variations, how='left')
-        profile.schema_df['unique_%'] = (profile.schema_df['unique_count'] / profile.total) * 100
+        profile.schema_df['unique_%'] = round((profile.schema_df['unique_count'] / profile.total) * 100, self.sigfig)
         return profile
 
 

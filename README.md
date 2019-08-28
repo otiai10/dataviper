@@ -12,23 +12,19 @@
 # Example
 
 ```python
-from dataviper import Client
+from dataviper.client import Client
 from dataviper.source import SQLServer
 
-client = Client(source=SQLServer())
+config = {
+    'driver': '{ODBC Driver 17 for SQL Server}',
+    'server': 'sqlserver.my-host.com',
+    'database': 'my-database',
+}
 
-with client.connect(config) as conn:
+client = Client(source=SQLServer(config))
 
-    # Just fetch types of columns first
-    schema = client.get_schema(table_name)
-    # Count NULL values on each column
-    client.count_null(schema)
-    # Get min, med, max, std
-    client.get_deviation(schema)
-    # Get top 10 samples, last 10 samples,
-    # number of unique values
-    client.get_diversity(schema)
+with client.connect() as conn:
+    profile = client.profile('My_Table_Name')
+    profile.schema_df.to_csv('./{}.csv'.format(profile.table_name)
 
-    # If you want pandas DataFrame and write it to a file
-    schema.to_dataframe.to_csv(your_file)
 ```
