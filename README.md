@@ -28,3 +28,10 @@ with client.connect() as conn:
     profile.schema_df.to_csv('./{}.csv'.format(profile.table_name)
 
 ```
+
+Then you will get `My_Table_Name.csv` which looks like
+
+| column_name | data_type | null_count | null_% | unique_count | unique_% | min | max    | avg    | std | examples_top_8 | examples_last_8 |
+|------------:|----------:|-----------:|-------:|-------------:|---------:|----:|-------:|-------:|----:|---------------:|----------------:|
+| id          | int       |          0 | 0.0000 | 924305       | 100.0000 | 0   | 924304 | 462152 | 30.0 | [1,2,3,4,5,6,7,8] | [924297,924298,924299,924300,924301,924302,924303,924304]
+| name        | varchar   |          0 | 0.0000 | 908230       | 98.2609 |   |  |  | | [john,mary,hiromu,jack,mike] | [sophia,victor,diana,chika,avelino]
