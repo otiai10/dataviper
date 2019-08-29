@@ -1,6 +1,9 @@
-from ..profile import Profile
+import sys
 import pypyodbc
 import pandas as pd
+from ..profile import Profile
+from ..logger import NaivePrintLogger
+
 
 class SQLServer():
     """
@@ -8,9 +11,10 @@ class SQLServer():
     and query builder as well.
     """
 
-    def __init__(self, config={}, sigfig=4):
+    def __init__(self, config={}, sigfig=4, logger=NaivePrintLogger()):
         self.config = config
         self.sigfig = sigfig
+        self.logger = logger
 
 
     def connect(self, config):
@@ -62,7 +66,7 @@ class SQLServer():
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return '(SELECT count(1) FROM {} WHERE [{}] is NULL) as [{}]'.format(table_name, column_name, column_name)
+        return '(SELECT COUNT(1) FROM {} WHERE [{}] is NULL) as [{}]'.format(table_name, column_name, column_name)
 
 
     def get_deviation(self, profile):
@@ -71,8 +75,11 @@ class SQLServer():
             data_type = profile.schema_df.at[column_name, 'data_type']
             if not data_type in ('int', 'float'):
                 continue
-            df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
-            devis = devis.append(df)
+            try:
+                df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
+                devis = devis.append(df)
+            except Exception as e:
+                self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(devis, how='left')
         return profile
 
@@ -119,12 +126,15 @@ class SQLServer():
 
     def get_examples(self, profile, count=8):
         aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
-        top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
-        for column_name in top_df.columns.values:
-            aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
-        last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
-        for column_name in last_df.columns.values:
-            aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
+        try:
+            top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
+            for column_name in top_df.columns.values:
+                aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
+            last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
+            for column_name in last_df.columns.values:
+                aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
+        except Exception as e:
+            self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
         return profile
 
@@ -138,6 +148,10 @@ class SQLServer():
 
 
     def infer_primary_key(self, profile):
+        """
+        Primary key must be picked up in purpose of sorting for "get_examples".
+        The data_type "key" can be set intentionally by human modification.
+        """
         if 'key' in profile.schema_df['data_type'].values:
             return profile.schema_df[profile.schema_df['data_type'] == 'key'].index[0]
         if 'date' in profile.schema_df['data_type'].values:
