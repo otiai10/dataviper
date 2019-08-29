@@ -1,3 +1,4 @@
+import os
 
 class Profile():
 
@@ -6,5 +7,11 @@ class Profile():
         self.schema_df = schema_df
 
 
-    def to_csv(self, fpath):
-        self.schema_df.to_csv(fpath)
+    def to_csv(self, outdir="."):
+        file_path = os.path.join(outdir, "profile_{}.csv".format(self.table_name))
+        self.schema_df.to_csv(file_path)
+
+
+    def to_excel(self, outdir='.'):
+        file_path = os.path.join(outdir, "profile_{}.xlsx".format(self.table_name))
+        self.schema_df.to_excel(file_path)
