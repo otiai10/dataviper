@@ -160,13 +160,14 @@ class SQLServer():
             return profile.schema_df['unique_count'].idxmax()
         return profile.schema_df.index[0]
 
-    def pivot(self, profile, key, categorical_columns, result_table):
+    def pivot(self, profile, key, categorical_columns, result_table, commit=False):
         profile = self.collect_category_values(profile, categorical_columns)
         targets = self.__query_for_pivot_columns(key, profile)
         query = "SELECT {0} INTO {1} FROM {2}".format(targets, result_table, profile.table_name)
-        cur = self.__conn.cursor()
-        cur.execute(query).commit()
-        profile.pivot_table_name = result_table
+        if commit:
+            cur = self.__conn.cursor()
+            cur.execute(query).commit()
+            profile.pivot_table_name = result_table
         return profile
 
 
