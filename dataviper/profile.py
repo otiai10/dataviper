@@ -5,7 +5,8 @@ class Profile():
     def __init__(self, table_name, schema_df):
         self.table_name = table_name
         self.schema_df = schema_df
-
+        self.categorical_columns = {} # Dict of CategoricalColumn
+        self.pivot_name = ''
 
     def to_csv(self, outdir="."):
         file_path = os.path.join(outdir, "profile_{}.csv".format(self.table_name))

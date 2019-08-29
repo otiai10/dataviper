@@ -3,7 +3,7 @@ import pypyodbc
 import pandas as pd
 from ..profile import Profile
 from ..logger import NaivePrintLogger
-
+from ..categorical_column import CategoricalColumn
 
 class SQLServer():
     """
@@ -159,3 +159,42 @@ class SQLServer():
         if 'unique_count' in profile.schema_df.columns:
             return profile.schema_df['unique_count'].idxmax()
         return profile.schema_df.index[0]
+
+    def pivot(self, profile, key, categorical_columns, result_table):
+        profile = self.collect_category_values(profile, categorical_columns)
+        targets = self.__query_for_pivot_columns(key, profile)
+        query = "SELECT {0} INTO {1} FROM {2}".format(targets, result_table, profile.table_name)
+        cur = self.__conn.cursor()
+        cur.execute(query).commit()
+        profile.pivot_table_name = result_table
+        return profile
+
+
+    def __query_for_pivot_columns(self, key, profile):
+        select_targets = ['[{}]'.format(key)]
+        for cc in profile.categorical_columns.values():
+            select_targets.append(self.cases_query_for_a_categorical_column(cc))
+        return ",\n".join(select_targets)
+
+
+    def collect_category_values(self, profile, categorical_columns):
+        for column_name in categorical_columns:
+            self.collect_category_values_on(profile, column_name)
+        return profile
+
+
+    def collect_category_values_on(self, profile, column_name):
+        query = "SELECT DISTINCT [{0}] FROM [{1}] WHERE [{0}] IS NOT NULL".format(column_name, profile.table_name)
+        df = pd.read_sql(query, self.__conn)
+        # Some clean ups
+        vals = list(map(lambda val: val.strip(), filter(lambda val: val, df.iloc[:, 0].tolist())))
+        profile.categorical_columns[column_name] = CategoricalColumn(column_name, vals)
+        return profile
+
+
+    def cases_query_for_a_categorical_column(self, cat_column):
+        cases = []
+        for val in cat_column.values:
+            query = "CASE WHEN ([{0}] = '{1}') THEN 1 ELSE 0 END AS [{0}_{1}]".format(cat_column.name, val)
+            cases.append(query)
+        return ",\n".join(cases)

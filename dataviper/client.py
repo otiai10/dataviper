@@ -1,3 +1,4 @@
+from datetime import datetime
 
 class Client():
     """
@@ -38,4 +39,12 @@ class Client():
         self.get_variation(profile)
         self.get_deviation(profile)
         self.get_examples(profile)
+        return profile
+
+
+    def pivot(self, profile, key, categorical_columns, result_table=None):
+        if result_table is None:
+            now = datetime.now().strftime("%Y%m%d%H%M")
+            result_table = "{}_pivot_{}".format(profile.table_name, now)
+        profile = self.source.pivot(profile, key, categorical_columns, result_table)
         return profile
