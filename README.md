@@ -3,7 +3,7 @@
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
 - Create "Data Profile" report of a table
-- Pivot "Categorical Columns" and create another table
+- One-hot encode for "Categorical Columns" and create a "one-hot" table
 - // TODO: and more
 
 # Connection
@@ -58,7 +58,7 @@ then you will get `profile_Sales.xlsx` with
 | sales_type | varchar | 1 | 14.28 | 3 | 42.85  |   |   |     |     | [phone,web,web] | [None,shop,shop] |
 | price      | int     | 0 | 0     | 6 | 85.71  | 70 | 920 | 307.1428 | 295.379 | [240,90,560] | [90,180,70] |
 
-# `pivot`
+# `onehot_encode`
 
 Spread categorical columns to N binary columns.
 
@@ -82,10 +82,10 @@ with client.connect() as conn:
     key = 'id'
     categorical_columns = ['region', 'sales_type']
     profile = client.get_schema(table_name)
-    client.pivot(profile, key, categorical_columns)
+    client.onehot_encode(profile, key, categorical_columns)
 ```
 
-then you will get `Sales_pivot_YYYYmmddHHMM` table with
+then you will get `Sales_ONEHOT_YYYYmmddHHMM` table with
 
 | id | region_jp | region_us | sales_type_phone | sales_type_web | sales_type_shop |
 |:--:|:---------:|:---------:|:----------------:|:--------------:|:---------------:|
@@ -118,8 +118,8 @@ with client.connect() as conn:
     profile.to_excel()
     # File `profile_Sales.xlsx` is created
 
-    client.pivot(profile, 'id', ['region', 'sales_type'])
-    # Table `Sales_pivot_201908291732` is created
+    client.onehot_encode(profile, 'id', ['region', 'sales_type'])
+    # Table `Sales_ONEHOT_201908291732` is created
 
 ```
 

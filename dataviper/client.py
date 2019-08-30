@@ -42,9 +42,9 @@ class Client():
         return profile
 
 
-    def pivot(self, profile, key, categorical_columns, result_table=None):
+    def onehot_encode(self, profile, key, categorical_columns, result_table=None, commit=False):
         if result_table is None:
             now = datetime.now().strftime("%Y%m%d%H%M")
-            result_table = "{}_pivot_{}".format(profile.table_name, now)
-        profile = self.source.pivot(profile, key, categorical_columns, result_table)
+            result_table = "{}_ONEHOT_{}".format(profile.table_name, now)
+        profile = self.source.onehot_encode(profile, key, categorical_columns, result_table, commit=commit)
         return profile

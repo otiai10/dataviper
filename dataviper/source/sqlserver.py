@@ -160,18 +160,21 @@ class SQLServer():
             return profile.schema_df['unique_count'].idxmax()
         return profile.schema_df.index[0]
 
-    def pivot(self, profile, key, categorical_columns, result_table, commit=False):
+    def onehot_encode(self, profile, key, categorical_columns, result_table, commit=False):
         profile = self.collect_category_values(profile, categorical_columns)
-        targets = self.__query_for_pivot_columns(key, profile)
+        targets = self.__query_for_onehot_columns(key, profile)
         query = "SELECT {0} INTO {1} FROM {2}".format(targets, result_table, profile.table_name)
+        profile.onehot_table_name = result_table
         if commit:
             cur = self.__conn.cursor()
             cur.execute(query).commit()
-            profile.pivot_table_name = result_table
+        else:
+            # Leave an executor function to Profile
+            profile.do_onehot = lambda: self.__conn.cursor().execute(query).commit()
         return profile
 
 
-    def __query_for_pivot_columns(self, key, profile):
+    def __query_for_onehot_columns(self, key, profile):
         select_targets = ['[{}]'.format(key)]
         for cc in profile.categorical_columns.values():
             select_targets.append(self.cases_query_for_a_categorical_column(cc))
