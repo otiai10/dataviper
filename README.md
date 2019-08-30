@@ -30,15 +30,15 @@ Create "Data Profile" excel file of a specified table.
 
 When you have `Sales` table like this
 
-| id | region | sales_type | price |
-|:---:|:--------:|:----------:|:---------:|
-| 1 | jp | phone | 240 |
-| 2 | us | web | 90 |
-| 3 | jp | web | 560 |
-| 4 | us | shop | 920 |
-| 5 | jp | NULL | 90 |
-| 6 | us | shop | 180 |
-| 7 | us | shop | 70 |
+| id | region | sales_type | price | rep_id |
+|:---:|:--------:|:----------:|:---------:|:-------:|
+| 1 | jp | phone | 240 | 115723 |
+| 2 | us | web | 90 |    125901 |
+| 3 | jp | web | 560 |     8003 |
+| 4 | us | shop | 920 |  182234 |
+| 5 | jp | NULL | 90 |    92231 |
+| 6 | us | shop | 180 |  100425 |
+| 7 | us | shop | 70 |    52934 |
 
 do
 
@@ -49,7 +49,7 @@ with client.connect() as conn:
     profile.to_excel()
 ```
 
-then you will get `profile_Sales.xlsx` with
+then you will get `profile_Sales.xlsx` file with
 
 | column_name | data_type | null_count | null_% | unique_count | unique_% | min | max | avg | std | example_top_3 | example_last_3 |
 |:-----------:|:----------:|:----------:|:------:|:------------:|:-------:|:---:|:---:|:----:|:---:|:------------:|:--------------:|
@@ -57,24 +57,13 @@ then you will get `profile_Sales.xlsx` with
 | region     | varchar | 0 | 0     | 2 | 28.57  |   |   |     |     | [jp,us,jp]      | [jp,us,us]       |
 | sales_type | varchar | 1 | 14.28 | 3 | 42.85  |   |   |     |     | [phone,web,web] | [None,shop,shop] |
 | price      | int     | 0 | 0     | 6 | 85.71  | 70 | 920 | 307.1428 | 295.379 | [240,90,560] | [90,180,70] |
+| rep_id     | int     | 0 | 0     | 7 | 100.00 | 8003 |182234 | 96778.7142 | 51195.79065 | [115723,125901,8003] | [92231,100425,52934] |
 
 # `onehot_encode`
 
 Spread categorical columns to N binary columns.
 
-When you have `Sales` table like this
-
-| id | region | sales_type | price |
-|:---:|:--------:|:----------:|:----:|
-| 1 | jp | phone | 240 |
-| 2 | us | web | 90 |
-| 3 | jp | web | 560 |
-| 4 | us | shop | 920 |
-| 5 | jp | NULL | 90 |
-| 6 | us | shop | 180 |
-| 7 | us | shop | 70 |
-
-do
+When you have `Sales` table like above, do
 
 ```python
 with client.connect() as conn:
@@ -97,6 +86,37 @@ then you will get `Sales_ONEHOT_YYYYmmddHHMM` table with
 | 6  |  0        | 1         | 0                | 0              | 1               |
 | 7  |  0        | 1         | 0                | 0              | 1               |
 
+# `joinability`
+
+Count how much 2 tables can be joined.
+
+When you have `Sales` table like above, and `Reps` table like this
+
+| id     | name    | tenure |
+|:------:|:-------:|:------:|
+| 8003   | Hiromu  | 9      |
+| 8972   | Ochiai  | 6      |
+| 52934  | Taro    | 1      |
+| 92231  | otiai10 | 2      |
+| 100425 | Hanako  | 7      |
+| 125901 | Chika   | 3      |
+| 182234 | Mary    | 5      |
+| 199621 | Jack    | 1      |
+
+do
+
+```python
+with client.connect() as conn:
+    report = client.joinability(on={'Sales': 'rep_id', 'Reps': 'id'})
+    report.to_excel()
+```
+
+then you will get `join_Sales_Reps.xlsx` file with
+
+| table | total | match | match_% | drop | drop_% |
+|:------:|:------:|:-----:|:------:|:-----:|:------:|
+| Sales | 7 | 6 | 85.714 | 1 | 14.285 |
+| Reps  | 8 | 6 | 75.00 | 2 | 25.00 |
 
 # Example
 
