@@ -1,4 +1,5 @@
 import os
+from dataviper.report.utils import create_workbook_from_dataframe
 
 class Joinability():
     """
@@ -12,5 +13,6 @@ class Joinability():
 
 
     def to_excel(self, outdir="."):
-        fpath = os.path.join(outdir, "joinability_{}_{}.xlsx".format(self.x, self.y))
-        self.report.to_excel(fpath)
+        workbook = create_workbook_from_dataframe(self.report)
+        filename = os.path.join(outdir, "joinability_{}_{}.xlsx".format(self.x, self.y))
+        workbook.save(filename)
