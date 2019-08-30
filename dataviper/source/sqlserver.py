@@ -1,9 +1,10 @@
 import sys
 import pypyodbc
 import pandas as pd
-from ..profile import Profile
-from ..logger import NaivePrintLogger
-from ..categorical_column import CategoricalColumn
+from dataviper.logger import NaivePrintLogger
+from dataviper.categorical_column import CategoricalColumn
+from dataviper.report.profile import Profile
+from dataviper.report.joinability import Joinability
 
 class SQLServer():
     """
@@ -19,12 +20,11 @@ class SQLServer():
 
     def connect(self, config):
         config = config if config is not None else self.config
-        self.__conn = pypyodbc.connect(
-            driver=config.get('driver', '{ODBC Driver 17 for SQL Server}'),
-            server=config.get('server', 'localhost'),
-            database=config.get('database', ''),
-            trusted_connection=config.get('use_trusted_connection', 'Yes'),
-        )
+        connectString = ''
+        for key, value in list(config.items()):
+            if value is not None:
+                connectString += (key + '=' + value + ';')
+        self.__conn = pypyodbc.connect(connectString)
         return self.__conn
 
 
@@ -202,3 +202,31 @@ class SQLServer():
             query = "CASE WHEN ([{0}] = '{1}') THEN 1 ELSE 0 END AS [{0}_{1}]".format(cat_column.name, val)
             cases.append(query)
         return ",\n".join(cases)
+
+
+    def joinability(self, on):
+        [table_x, table_y] = on.items()
+        query = self.__query_for_joinability(table_x, table_y)
+        df = pd.read_sql(query, self.__conn)
+        m_c = df['match_count'][0]
+        x_total = df['x_total'][0]
+        x_drop = x_total - m_c
+        y_total = df['y_total'][0]
+        y_drop = y_total - m_c
+        return Joinability(
+            table_x[0],
+            table_y[0],
+            pd.DataFrame([
+                [table_x[0], table_x[1], x_total, m_c, (m_c / x_total) * 100, x_drop, (x_drop / x_total) * 100],
+                [table_y[0], table_y[1], y_total, m_c, (m_c / y_total) * 100, y_drop, (y_drop / y_total) * 100]
+            ], columns=['table', 'key', 'total', 'match', 'match_%', 'drop', 'drop_%']).set_index('table')
+        )
+
+
+    def __query_for_joinability(self, table_x, table_y):
+        return '''
+            SELECT
+                (SELECT COUNT(1) FROM [{0}]) as x_total,
+                (SELECT COUNT(1) FROM [{2}]) as y_total,
+                (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
+        '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()

@@ -113,10 +113,10 @@ with client.connect() as conn:
 
 then you will get `join_Sales_Reps.xlsx` file with
 
-| table | total | match | match_% | drop | drop_% |
-|:------:|:------:|:-----:|:------:|:-----:|:------:|
-| Sales | 7 | 6 | 85.714 | 1 | 14.285 |
-| Reps  | 8 | 6 | 75.00 | 2 | 25.00 |
+| table | key      | total | match | match_% | drop | drop_% |
+|:------:|:-------:|:------:|:-----:|:------:|:-----:|:------:|
+| Sales | [rep_id] | 7 | 6 | 85.714 | 1 | 14.285 |
+| Reps  | [id]     | 8 | 6 | 75.00 | 2 | 25.00 |
 
 # Example
 
