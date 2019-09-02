@@ -1,5 +1,7 @@
 # dataviper
 
+[![CircleCI](https://circleci.com/gh/otiai10/dataviper.svg?style=svg)](https://circleci.com/gh/otiai10/dataviper)
+
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
 - Create "Data Profile" report of a table
