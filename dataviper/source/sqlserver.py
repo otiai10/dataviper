@@ -40,11 +40,11 @@ class SQLServer():
         return profile
 
 
-    self count_total(self, profile):
+    def count_total(self, profile):
         self.logger.info("START: count_total")
         query = "SELECT COUNT(1) AS total FROM [{}]".format(profile.table_name)
         df = pd.read_sql(query, self.__conn)
-        profile.total = int(null_count_df['total'][0])
+        profile.total = int(df['total'][0])
         self.logger.info("DONE: count_total")
         return profile
 
@@ -61,7 +61,7 @@ class SQLServer():
             profile = self.count_total(profile)
         null_count_df = null_count_df.drop('total', axis=1)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
-        null_count_df['null_%'] = round((null_count_df['null_count'] / total) * 100, self.sigfig)
+        null_count_df['null_%'] = round((null_count_df['null_count'] / profile.total) * 100, self.sigfig)
         profile.schema_df = profile.schema_df.join(null_count_df)
         self.logger.info("DONE: count_null")
         return profile
