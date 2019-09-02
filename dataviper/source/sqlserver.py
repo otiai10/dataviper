@@ -29,10 +29,12 @@ class SQLServer():
 
 
     def get_schema(self, table_name):
+        self.logger.info("START: get_schema")
         query = self.__get_schema_query(table_name)
         schema_df = pd.read_sql(query, self.__conn)
         schema_df = schema_df[['column_name', 'data_type']].set_index('column_name')
         schema_df.index = schema_df.index.str.lower()
+        self.logger.info("DONE: get_schema")
         return Profile(table_name, schema_df)
 
 
@@ -41,6 +43,7 @@ class SQLServer():
 
 
     def count_null(self, profile):
+        self.logger.info("START: count_null")
         query = self.__count_null_query(profile)
         null_count_df = pd.read_sql(query, self.__conn)
         # {{{ TODO: Separete to another method
@@ -51,6 +54,7 @@ class SQLServer():
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
         null_count_df['null_%'] = round((null_count_df['null_count'] / total) * 100, self.sigfig)
         profile.schema_df = profile.schema_df.join(null_count_df)
+        self.logger.info("DONE: count_null")
         return profile
 
 
@@ -70,6 +74,7 @@ class SQLServer():
 
 
     def get_deviation(self, profile):
+        self.logger.info("START: get_deviation")
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
@@ -81,6 +86,7 @@ class SQLServer():
             except Exception as e:
                 self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(devis, how='left')
+        self.logger.info("DONE: get_deviation")
         return profile
 
 
@@ -100,12 +106,14 @@ class SQLServer():
 
 
     def get_variation(self, profile):
+        self.logger.info("START: get_variation")
         variations = pd.DataFrame()
         for column_name in profile.schema_df.index:
             df = self.__get_variation_df_for_a_column(profile.table_name, column_name)
             variations = variations.append(df)
         profile.schema_df = profile.schema_df.join(variations, how='left')
         profile.schema_df['unique_%'] = round((profile.schema_df['unique_count'] / profile.total) * 100, self.sigfig)
+        self.logger.info("DONE: get_variation")
         return profile
 
 
@@ -125,6 +133,7 @@ class SQLServer():
 
 
     def get_examples(self, profile, count=8):
+        self.logger.info("START: get_example")
         aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
         try:
             top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
@@ -136,6 +145,7 @@ class SQLServer():
         except Exception as e:
             self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
+        self.logger.info("DONE: get_example")
         return profile
 
 
@@ -161,6 +171,7 @@ class SQLServer():
         return profile.schema_df.index[0]
 
     def onehot_encode(self, profile, key, categorical_columns, result_table, commit=False):
+        self.logger.info("START: onehot_encode")
         profile = self.collect_category_values(profile, categorical_columns)
         targets = self.__query_for_onehot_columns(key, profile)
         query = "SELECT {0} INTO {1} FROM {2}".format(targets, result_table, profile.table_name)
@@ -171,6 +182,7 @@ class SQLServer():
         else:
             # Leave an executor function to Profile
             profile.do_onehot = lambda: self.__conn.cursor().execute(query).commit()
+        self.logger.info("DONE: onehot_encode")
         return profile
 
 
@@ -205,6 +217,7 @@ class SQLServer():
 
 
     def joinability(self, on):
+        self.logger.info("START: joinability")
         [table_x, table_y] = on.items()
         query = self.__query_for_joinability(table_x, table_y)
         df = pd.read_sql(query, self.__conn)
@@ -213,6 +226,7 @@ class SQLServer():
         x_drop = x_total - m_c
         y_total = df['y_total'][0]
         y_drop = y_total - m_c
+        self.logger.info("DONE: joinability")
         return Joinability(
             table_x[0],
             table_y[0],
