@@ -6,6 +6,7 @@
 
 - Create "Data Profile" report of a table
 - One-hot encode for "Categorical Columns" and create a "one-hot" table
+- Check "Joinability" between 2 tables
 - // TODO: and more
 
 # Connection
