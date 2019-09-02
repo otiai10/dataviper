@@ -34,8 +34,19 @@ class SQLServer():
         schema_df = pd.read_sql(query, self.__conn)
         schema_df = schema_df[['column_name', 'data_type']].set_index('column_name')
         schema_df.index = schema_df.index.str.lower()
+        profile = Profile(table_name, schema_df)
+        profile = self.count_total(profile)
         self.logger.info("DONE: get_schema")
-        return Profile(table_name, schema_df)
+        return profile
+
+
+    self count_total(self, profile):
+        self.logger.info("START: count_total")
+        query = "SELECT COUNT(1) AS total FROM [{}]".format(profile.table_name)
+        df = pd.read_sql(query, self.__conn)
+        profile.total = int(null_count_df['total'][0])
+        self.logger.info("DONE: count_total")
+        return profile
 
 
     def __get_schema_query(self, table_name):
@@ -46,10 +57,8 @@ class SQLServer():
         self.logger.info("START: count_null")
         query = self.__count_null_query(profile)
         null_count_df = pd.read_sql(query, self.__conn)
-        # {{{ TODO: Separete to another method
-        total = null_count_df['total'][0]
-        profile.total = total
-        # }}}
+        if profile.total is None:
+            profile = self.count_total(profile)
         null_count_df = null_count_df.drop('total', axis=1)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
         null_count_df['null_%'] = round((null_count_df['null_count'] / total) * 100, self.sigfig)
@@ -133,7 +142,7 @@ class SQLServer():
 
 
     def get_examples(self, profile, count=8):
-        self.logger.info("START: get_example")
+        self.logger.info("START: get_examples")
         aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
         try:
             top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
@@ -145,7 +154,7 @@ class SQLServer():
         except Exception as e:
             self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
-        self.logger.info("DONE: get_example")
+        self.logger.info("DONE: get_examples")
         return profile
 
 

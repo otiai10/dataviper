@@ -6,6 +6,7 @@ class Profile():
     def __init__(self, table_name, schema_df):
         self.table_name = table_name
         self.schema_df = schema_df
+        self.total = None
         self.categorical_columns = {} # Dict of CategoricalColumn
         self.onehot_table_name = ''
         self.do_onehot = lambda: None
