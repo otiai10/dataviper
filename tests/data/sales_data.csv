@@ -1,0 +1,8 @@
+id,region,sales_type,price,rep_id,
+1,jp,phone,240,115723
+2,us,web,90,125901
+3,jp,web,560,8003
+4,us,shop,920,182234
+5,jp,NULL,90,92231
+6,us,shop,180,100425
+7,us,shop,70,52934

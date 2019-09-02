@@ -1,3 +1,5 @@
+from dataviper.source.sqlserver import SQLServer
 
 def test_SQLServer_placeholder():
-    assert True
+    source = SQLServer()
+    assert isinstance(source, SQLServer)

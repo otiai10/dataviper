@@ -1,12 +1,13 @@
 import sys
 import pypyodbc
 import pandas as pd
+from dataviper.source.datasource import DataSource
 from dataviper.logger import NaivePrintLogger
 from dataviper.categorical_column import CategoricalColumn
 from dataviper.report.profile import Profile
 from dataviper.report.joinability import Joinability
 
-class SQLServer():
+class SQLServer(DataSource):
     """
     class SQLServer is a connection provider for SQL Server
     and query builder as well.
