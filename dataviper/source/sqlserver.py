@@ -250,8 +250,8 @@ class SQLServer(DataSource):
         y_drop = y_total - m_c
         self.logger.exit("DONE: joinability")
         return Joinability(
-            table_x[0],
-            table_y[0],
+            table_x,
+            table_y,
             pd.DataFrame([
                 [table_x[0], table_x[1], x_total, m_c, (m_c / x_total) * 100, x_drop, (x_drop / x_total) * 100],
                 [table_y[0], table_y[1], y_total, m_c, (m_c / y_total) * 100, y_drop, (y_drop / y_total) * 100]
