@@ -2,7 +2,7 @@ import sys
 import pypyodbc
 import pandas as pd
 from dataviper.source.datasource import DataSource
-from dataviper.logger import NaivePrintLogger
+from dataviper.logger import IndentLogger
 from dataviper.categorical_column import CategoricalColumn
 from dataviper.report.profile import Profile
 from dataviper.report.joinability import Joinability
@@ -13,7 +13,7 @@ class SQLServer(DataSource):
     and query builder as well.
     """
 
-    def __init__(self, config={}, sigfig=4, logger=NaivePrintLogger()):
+    def __init__(self, config={}, sigfig=4, logger=IndentLogger()):
         self.config = config
         self.sigfig = sigfig
         self.logger = logger
@@ -30,23 +30,23 @@ class SQLServer(DataSource):
 
 
     def get_schema(self, table_name):
-        self.logger.info("START: get_schema")
+        self.logger.enter("START: get_schema")
         query = self.__get_schema_query(table_name)
         schema_df = pd.read_sql(query, self.__conn)
         schema_df = schema_df[['column_name', 'data_type']].set_index('column_name')
         schema_df.index = schema_df.index.str.lower()
         profile = Profile(table_name, schema_df)
         profile = self.count_total(profile)
-        self.logger.info("DONE: get_schema")
+        self.logger.exit("DONE: get_schema")
         return profile
 
 
     def count_total(self, profile):
-        self.logger.info("START: count_total")
+        self.logger.enter("START: count_total")
         query = "SELECT COUNT(1) AS total FROM [{}]".format(profile.table_name)
         df = pd.read_sql(query, self.__conn)
         profile.total = int(df['total'][0])
-        self.logger.info("DONE: count_total")
+        self.logger.exit("DONE: count_total")
         return profile
 
 
@@ -55,7 +55,7 @@ class SQLServer(DataSource):
 
 
     def count_null(self, profile):
-        self.logger.info("START: count_null")
+        self.logger.enter("START: count_null")
         query = self.__count_null_query(profile)
         null_count_df = pd.read_sql(query, self.__conn)
         if profile.total is None:
@@ -64,7 +64,7 @@ class SQLServer(DataSource):
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
         null_count_df['null_%'] = round((null_count_df['null_count'] / profile.total) * 100, self.sigfig)
         profile.schema_df = profile.schema_df.join(null_count_df)
-        self.logger.info("DONE: count_null")
+        self.logger.exit("DONE: count_null")
         return profile
 
 
@@ -84,19 +84,23 @@ class SQLServer(DataSource):
 
 
     def get_deviation(self, profile):
-        self.logger.info("START: get_deviation")
+        self.logger.enter("START: get_deviation")
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
             if not data_type in ('int', 'float'):
+                self.logger.info("PASS:", column_name)
                 continue
             try:
+                self.logger.enter("START:", column_name)
                 df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
                 devis = devis.append(df)
             except Exception as e:
                 self.logger.error("get_deviation", e)
+            finally:
+                self.logger.exit("DONE:", column_name)
         profile.schema_df = profile.schema_df.join(devis, how='left')
-        self.logger.info("DONE: get_deviation")
+        self.logger.exit("DONE: get_deviation")
         return profile
 
 
@@ -116,14 +120,18 @@ class SQLServer(DataSource):
 
 
     def get_variation(self, profile):
-        self.logger.info("START: get_variation")
+        self.logger.enter("START: get_variation")
+        if profile.total is None:
+            profile = self.count_total(profile)
         variations = pd.DataFrame()
         for column_name in profile.schema_df.index:
+            self.logger.enter("START:", column_name)
             df = self.__get_variation_df_for_a_column(profile.table_name, column_name)
             variations = variations.append(df)
+            self.logger.exit("DONE:", column_name)
         profile.schema_df = profile.schema_df.join(variations, how='left')
         profile.schema_df['unique_%'] = round((profile.schema_df['unique_count'] / profile.total) * 100, self.sigfig)
-        self.logger.info("DONE: get_variation")
+        self.logger.exit("DONE: get_variation")
         return profile
 
 
@@ -143,7 +151,7 @@ class SQLServer(DataSource):
 
 
     def get_examples(self, profile, count=8):
-        self.logger.info("START: get_examples")
+        self.logger.enter("START: get_examples")
         aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
         try:
             top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
@@ -155,7 +163,7 @@ class SQLServer(DataSource):
         except Exception as e:
             self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
-        self.logger.info("DONE: get_examples")
+        self.logger.exit("DONE: get_examples")
         return profile
 
 
@@ -181,22 +189,26 @@ class SQLServer(DataSource):
         return profile.schema_df.index[0]
 
     def onehot_encode(self, profile, key, categorical_columns, result_table, commit=False):
-        self.logger.info("START: onehot_encode")
+        self.logger.enter("START: onehot_encode")
         profile = self.collect_category_values(profile, categorical_columns)
         targets = self.__query_for_onehot_columns(key, profile)
-        query = "SELECT {0} INTO {1} FROM {2}".format(targets, result_table, profile.table_name)
+        query = "SELECT\n{0}\nINTO {1}\nFROM {2}".format(targets, result_table, profile.table_name)
         profile.onehot_table_name = result_table
         if commit:
             cur = self.__conn.cursor()
             cur.execute(query).commit()
         else:
-            # Leave an executor function to Profile
-            profile.do_onehot = lambda: self.__conn.cursor().execute(query).commit()
-        self.logger.info("DONE: onehot_encode")
+            with open('{}.sql'.format(result_table), 'wb') as f:
+                f.write(query.encode())
+        self.logger.exit("DONE: onehot_encode")
         return profile
 
 
     def __query_for_onehot_columns(self, key, profile):
+        if type(key) is str:
+            select_targets = ['[{}]'.format(key)]
+        elif type(key) is list:
+            select_targets = list(map(lambda k: '[{}]'.format(k), key))
         select_targets = ['[{}]'.format(key)]
         for cc in profile.categorical_columns.values():
             select_targets.append(self.cases_query_for_a_categorical_column(cc))
@@ -227,7 +239,7 @@ class SQLServer(DataSource):
 
 
     def joinability(self, on):
-        self.logger.info("START: joinability")
+        self.logger.enter("START: joinability")
         [table_x, table_y] = on.items()
         query = self.__query_for_joinability(table_x, table_y)
         df = pd.read_sql(query, self.__conn)
@@ -236,7 +248,7 @@ class SQLServer(DataSource):
         x_drop = x_total - m_c
         y_total = df['y_total'][0]
         y_drop = y_total - m_c
-        self.logger.info("DONE: joinability")
+        self.logger.exit("DONE: joinability")
         return Joinability(
             table_x[0],
             table_y[0],
