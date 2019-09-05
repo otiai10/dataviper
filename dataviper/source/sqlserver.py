@@ -88,12 +88,12 @@ class SQLServer(DataSource):
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
-            if not data_type in ('int', 'float'):
+            if not data_type in ('int', 'bigint', 'float', 'date', 'datetime'):
                 self.logger.info("PASS:", column_name)
                 continue
             try:
                 self.logger.enter("START:", column_name)
-                df = self.__get_deviation_df_for_a_column(profile.table_name, column_name)
+                df = self.__get_deviation_df_for_a_column(profile.table_name, column_name, data_type)
                 devis = devis.append(df)
             except Exception as e:
                 self.logger.error("get_deviation", e)
@@ -104,19 +104,42 @@ class SQLServer(DataSource):
         return profile
 
 
-    def __get_deviation_df_for_a_column(self, table_name, column_name):
-        query = self.__get_deviation_query_for_a_column(table_name, column_name)
+    def __get_deviation_df_for_a_column(self, table_name, column_name, data_type='int'):
+        query = self.__get_deviation_query_for_a_column(table_name, column_name, data_type)
         df = pd.read_sql(query, self.__conn)
         df.index = [column_name]
         return df
 
 
-    def __get_deviation_query_for_a_column(self, table_name, column_name):
+    def __get_deviation_query_for_a_column(self, table_name, column_name, data_type):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return 'SELECT MIN([{0}]) as min, MAX([{0}]) as max, AVG([{0}]) as avg, STDEV([{0}]) as std FROM {1}'.format(column_name, table_name)
+        if data_type in ('bigint', 'float'):
+            return '''
+                SELECT
+                    MIN([{0}]) as min,
+                    MAX([{0}]) as max,
+                    AVG([{0}]) as avg,
+                    STDEV([{0}]) as std
+                FROM [{1}]
+            '''.format(column_name, table_name).strip()
+        if data_type in ('int'):
+            return '''
+                SELECT
+                    MIN(CAST([{0}] AS BIGINT)) as min,
+                    MAX(CAST([{0}] AS BIGINT)) as max,
+                    AVG(CAST([{0}] AS BIGINT)) as avg,
+                    STDEV(CAST([{0}] AS BIGINT)) as std
+                FROM [{1}]
+            '''.format(column_name, table_name).strip()
+        return '''
+            SELECT
+                MIN([{0}]) as min,
+                MAX([{0}]) as max
+            FROM [{1}]
+        '''.format(column_name, table_name).strip()
 
 
     def get_variation(self, profile):
