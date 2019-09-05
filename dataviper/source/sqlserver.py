@@ -88,13 +88,13 @@ class SQLServer(DataSource):
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
-            if not data_type in ('int', 'bigint', 'float', 'date', 'datetime'):
-                self.logger.info("PASS:", column_name)
+            if not data_type in ('int', 'bigint', 'float', 'date', 'datetime', 'bit'):
+                self.logger.info("PASS:", column_name, "because it's {}".format(data_type))
                 continue
             try:
                 self.logger.enter("START:", column_name)
                 df = self.__get_deviation_df_for_a_column(profile.table_name, column_name, data_type)
-                devis = devis.append(df)
+                devis = devis.append(df, sort=False)
             except Exception as e:
                 self.logger.error("get_deviation", e)
             finally:
@@ -116,22 +116,13 @@ class SQLServer(DataSource):
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        if data_type in ('bigint', 'float'):
+        if data_type in ('bigint', 'int', 'float', 'bit'):
             return '''
                 SELECT
-                    MIN([{0}]) as min,
-                    MAX([{0}]) as max,
-                    AVG([{0}]) as avg,
-                    STDEV([{0}]) as std
-                FROM [{1}]
-            '''.format(column_name, table_name).strip()
-        if data_type in ('int'):
-            return '''
-                SELECT
-                    MIN(CAST([{0}] AS BIGINT)) as min,
-                    MAX(CAST([{0}] AS BIGINT)) as max,
-                    AVG(CAST([{0}] AS BIGINT)) as avg,
-                    STDEV(CAST([{0}] AS BIGINT)) as std
+                    MIN(CAST([{0}] AS FLOAT)) as min,
+                    MAX(CAST([{0}] AS FLOAT)) as max,
+                    AVG(CAST([{0}] AS FLOAT)) as avg,
+                    STDEV(CAST([{0}] AS FLOAT)) as std
                 FROM [{1}]
             '''.format(column_name, table_name).strip()
         return '''
