@@ -223,7 +223,6 @@ class SQLServer(DataSource):
             select_targets = ['[{}]'.format(key)]
         elif type(key) is list:
             select_targets = list(map(lambda k: '[{}]'.format(k), key))
-        select_targets = ['[{}]'.format(key)]
         for cc in profile.categorical_columns.values():
             select_targets.append(self.cases_query_for_a_categorical_column(cc))
         return ",\n".join(select_targets)
