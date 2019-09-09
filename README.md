@@ -62,7 +62,7 @@ then you will get `profile_Sales.xlsx` file with
 | price      | int     | 0 | 0     | 6 | 85.71  | 70 | 920 | 307.1428 | 295.379 | [240,90,560] | [90,180,70] |
 | rep_id     | int     | 0 | 0     | 7 | 100.00 | 8003 |182234 | 96778.7142 | 51195.79065 | [115723,125901,8003] | [92231,100425,52934] |
 
-# `onehot_encode`
+# `pivot`
 
 Spread categorical columns to N binary columns.
 
@@ -74,10 +74,10 @@ with client.connect() as conn:
     key = 'id'
     categorical_columns = ['region', 'sales_type']
     profile = client.get_schema(table_name)
-    client.onehot_encode(profile, key, categorical_columns)
+    client.pivot(profile, key, categorical_columns)
 ```
 
-then you will get `Sales_ONEHOT_YYYYmmddHHMM` table with
+then you will get `Sales_PIVOT_YYYYmmddHHMM` table with
 
 | id | region_jp | region_us | sales_type_phone | sales_type_web | sales_type_shop |
 |:--:|:---------:|:---------:|:----------------:|:--------------:|:---------------:|
@@ -141,8 +141,8 @@ with client.connect() as conn:
     profile.to_excel()
     # File `profile_Sales.xlsx` is created
 
-    client.onehot_encode(profile, 'id', ['region', 'sales_type'])
-    # Table `Sales_ONEHOT_201908291732` is created
+    client.pivot(profile, 'id', ['region', 'sales_type'])
+    # Table `Sales_PIVOT_201908291732` is created
 
 ```
 

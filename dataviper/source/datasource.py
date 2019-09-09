@@ -33,7 +33,7 @@ class DataSource(ABC):
 
 
     @abstractclassmethod
-    def onehot_encode(self, profile, key, categorical_columns, result_table, commit=False):
+    def pivot(self, profile, key, categorical_columns, result_table, commit=False):
         pass
 
 

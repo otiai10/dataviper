@@ -35,7 +35,7 @@ class CSV(DataSource):
         return profile
 
 
-    def onehot_encode(self, profile):
+    def pivot(self, profile):
         return profile
 
 

@@ -202,19 +202,18 @@ class SQLServer(DataSource):
             return profile.schema_df['unique_count'].idxmax()
         return profile.schema_df.index[0]
 
-    def onehot_encode(self, profile, key, categorical_columns, result_table, commit=False):
-        self.logger.enter("START: onehot_encode")
+    def pivot(self, profile, key, categorical_columns, result_table, commit=False):
+        self.logger.enter("START: pivot")
         profile = self.collect_category_values(profile, categorical_columns)
         targets = self.__query_for_onehot_columns(key, profile)
         query = "SELECT\n{0}\nINTO {1}\nFROM {2}".format(targets, result_table, profile.table_name)
-        profile.onehot_table_name = result_table
         if commit:
             cur = self.__conn.cursor()
             cur.execute(query).commit()
         else:
             with open('{}.sql'.format(result_table), 'wb') as f:
                 f.write(query.encode())
-        self.logger.exit("DONE: onehot_encode")
+        self.logger.exit("DONE: pivot")
         return profile
 
 
