@@ -23,7 +23,7 @@ class DataSource(ABC):
 
 
     @abstractclassmethod
-    def get_variation(self, profile):
+    def count_unique(self, profile):
         pass
 
 

@@ -21,8 +21,8 @@ class Client():
         return self.source.count_null(profile)
 
 
-    def get_variation(self, profile):
-        return self.source.get_variation(profile)
+    def count_unique(self, profile):
+        return self.source.count_unique(profile)
 
 
     def get_deviation(self, profile):
@@ -36,7 +36,7 @@ class Client():
     def profile(self, table_name):
         profile = self.get_schema(table_name)
         self.count_null(profile)
-        self.get_variation(profile)
+        self.count_unique(profile)
         self.get_deviation(profile)
         self.get_examples(profile)
         return profile

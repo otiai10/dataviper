@@ -133,30 +133,30 @@ class SQLServer(DataSource):
         '''.format(column_name, table_name).strip()
 
 
-    def get_variation(self, profile):
-        self.logger.enter("START: get_variation")
+    def count_unique(self, profile):
+        self.logger.enter("START: count_unique")
         if profile.total is None:
             profile = self.count_total(profile)
         variations = pd.DataFrame()
         for column_name in profile.schema_df.index:
             self.logger.enter("START:", column_name)
-            df = self.__get_variation_df_for_a_column(profile.table_name, column_name)
+            df = self.__count_unique_df_for_a_column(profile.table_name, column_name)
             variations = variations.append(df)
             self.logger.exit("DONE:", column_name)
         profile.schema_df = profile.schema_df.join(variations, how='left')
         profile.schema_df['unique_%'] = round((profile.schema_df['unique_count'] / profile.total) * 100, self.sigfig)
-        self.logger.exit("DONE: get_variation")
+        self.logger.exit("DONE: count_unique")
         return profile
 
 
-    def __get_variation_df_for_a_column(self, table_name, column_name):
-        query = self.__get_variation_query_for_a_column(table_name, column_name)
+    def __count_unique_df_for_a_column(self, table_name, column_name):
+        query = self.__count_unique_query_for_a_column(table_name, column_name)
         df = pd.read_sql(query, self.__conn)
         df.index = [column_name]
         return df
 
 
-    def __get_variation_query_for_a_column(self, table_name, column_name):
+    def __count_unique_query_for_a_column(self, table_name, column_name):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017

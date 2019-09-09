@@ -27,7 +27,7 @@ class CSV(DataSource):
         return profile
 
 
-    def get_variation(self, profile):
+    def count_unique(self, profile):
         return profile
 
 
