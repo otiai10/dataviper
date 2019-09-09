@@ -273,9 +273,23 @@ class SQLServer(DataSource):
 
 
     def __query_for_joinability(self, table_x, table_y):
-        return '''
-            SELECT
-                (SELECT COUNT(1) FROM [{0}]) as x_total,
-                (SELECT COUNT(1) FROM [{2}]) as y_total,
-                (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
-        '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()
+        if type(table_x[1]) is str and type(table_y[1]) is str:
+            return '''
+                SELECT
+                    (SELECT COUNT(1) FROM [{0}]) as x_total,
+                    (SELECT COUNT(1) FROM [{2}]) as y_total,
+                    (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
+            '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()
+        elif type(table_x[1]) is list and type(table_y[1]) is list or type(table_y[1]) is tuple and type(table_y[1]) is tuple:
+            keys = []
+            for (i, k_x) in enumerate(table_x[1]):
+                k_y = table_y[i]
+                keys.append('[{}].[{}] = [{}].[{}]'.format(table_x[0], k_x, table_y[0], k_y))
+            return '''
+                SELECT
+                    (SELECT COUNT(1) FROM [{0}]) as x_total,
+                    (SELECT COUNT(1) FROM [{1}]) as y_total,
+                    (SELECT COUNT(1) FROM [{0}] INNER JOIN [{1}] ON {2}) as match_count
+            '''.format(table_x[0], table_y[0], ' AND '.join(keys)).strip()
+        else:
+            raise Exception("unsupported type combinations on keys: {} and {}", type(table_x[1]), type(table_y[1]))
