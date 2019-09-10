@@ -8,7 +8,7 @@ class Profile():
         self.schema_df = schema_df
         self.total = None
         self.categorical_columns = {} # Dict of CategoricalColumn
-
+        self.rawdata = None # Only used by CSV source
 
     def to_csv(self, outdir="."):
         file_path = os.path.join(outdir, "profile_{}.csv".format(self.table_name))
@@ -28,7 +28,7 @@ class Profile():
                 if col == 1: # column_type
                     if cell.value in ('int', 'float'):
                         fill_cell_color(cell, '00FFBF')
-                    elif cell.value in ('varchar', 'nvarchar'):
+                    elif cell.value in ('varchar', 'nvarchar', 'str'):
                         fill_cell_color(cell, 'FFBF00')
                 elif col == 3: # null_%
                     if float(cell.value) >= 70:

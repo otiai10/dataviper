@@ -13,8 +13,8 @@ class Client():
         return self.source.connect(config)
 
 
-    def get_schema(self, table_name):
-        return self.source.get_schema(table_name)
+    def get_schema(self, table_name, **kwargs):
+        return self.source.get_schema(table_name, **kwargs)
 
 
     def count_null(self, profile):
@@ -33,8 +33,8 @@ class Client():
         return self.source.get_examples(profile)
 
 
-    def profile(self, table_name):
-        profile = self.get_schema(table_name)
+    def profile(self, table_name, **kwargs):
+        profile = self.get_schema(table_name, **kwargs)
         self.count_null(profile)
         self.count_unique(profile)
         self.get_deviation(profile)
