@@ -38,7 +38,13 @@ jobs:
             . venv/bin/activate
             pytest -v --cov=dataviper
 
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            coverage run --source=dataviper -m pytest
+            coverage report
+            coverage html  # open htmlcov/index.html in a browser
 
+      - store_artifacts:
+          path: htmlcov
