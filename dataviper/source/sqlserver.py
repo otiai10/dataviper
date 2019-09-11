@@ -88,27 +88,28 @@ class SQLServer(DataSource):
         devis = pd.DataFrame()
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
-            if not data_type in ('int', 'bigint', 'float', 'date', 'datetime', 'bit'):
-                self.logger.info("PASS:", column_name, "because it's {}".format(data_type))
-                continue
-            try:
-                self.logger.enter("START:", column_name)
-                df = self.__get_deviation_df_for_a_column(profile.table_name, column_name, data_type)
-                devis = devis.append(df, sort=False)
-            except Exception as e:
-                self.logger.error("get_deviation", e)
-            finally:
-                self.logger.exit("DONE:", column_name)
+            df = self.__get_deviation_df_for_a_column(profile.table_name, column_name, data_type)
+            if df is not None: devis = devis.append(df, sort=False)
         profile.schema_df = profile.schema_df.join(devis, how='left')
         self.logger.exit("DONE: get_deviation")
         return profile
 
 
     def __get_deviation_df_for_a_column(self, table_name, column_name, data_type='int'):
-        query = self.__get_deviation_query_for_a_column(table_name, column_name, data_type)
-        df = pd.read_sql(query, self.__conn)
-        df.index = [column_name]
-        return df
+        if not data_type in ('int', 'bigint', 'float', 'date', 'datetime', 'bit', 'varchar', 'nvarchar'):
+            self.logger.info("PASS:", column_name, "because it's {}".format(data_type))
+            return
+        try:
+            self.logger.enter("START:", column_name)
+            query = self.__get_deviation_query_for_a_column(table_name, column_name, data_type)
+            df = pd.read_sql(query, self.__conn)
+            df.index = [column_name]
+            return df
+        except Exception as e:
+            self.logger.error("get_deviation", e)
+        finally:
+            self.logger.exit("DONE:", column_name)
+        return None
 
 
     def __get_deviation_query_for_a_column(self, table_name, column_name, data_type):
@@ -125,6 +126,22 @@ class SQLServer(DataSource):
                     STDEV(CAST([{0}] AS FLOAT)) as std
                 FROM [{1}]
             '''.format(column_name, table_name).strip()
+        if data_type in ('datetime'):
+            return '''
+                SELECT
+                    MIN([{0}]) as min,
+                    MAX([{0}]) as max,
+                    CAST(AVG(CAST([{0}] AS FLOAT)) AS DATETIME) as avg
+                FROM [{1}]
+            '''.format(column_name, table_name).strip()
+        if data_type in ('date'):
+            return '''
+                SELECT
+                    MIN([{0}]) as min,
+                    MAX([{0}]) as max,
+                    CAST(AVG(CAST([{0}] AS INT)) AS DATE) as avg
+                FROM [{1}]
+            '''
         return '''
             SELECT
                 MIN([{0}]) as min,
