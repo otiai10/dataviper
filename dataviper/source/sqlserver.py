@@ -43,7 +43,7 @@ class SQLServer(DataSource):
 
     def count_total(self, profile):
         self.logger.enter("START: count_total")
-        query = "SELECT COUNT(1) AS total FROM [{}]".format(profile.table_name)
+        query = "SELECT COUNT(*) AS total FROM [{}]".format(profile.table_name)
         df = pd.read_sql(query, self.__conn)
         profile.total = int(df['total'][0])
         self.logger.exit("DONE: count_total")
@@ -56,11 +56,10 @@ class SQLServer(DataSource):
 
     def count_null(self, profile):
         self.logger.enter("START: count_null")
-        query = self.__count_null_query(profile)
-        null_count_df = pd.read_sql(query, self.__conn)
         if profile.total is None:
             profile = self.count_total(profile)
-        null_count_df = null_count_df.drop('total', axis=1)
+        query = self.__count_null_query(profile)
+        null_count_df = pd.read_sql(query, self.__conn)
         null_count_df = null_count_df.T.rename(columns={0: 'null_count'})
         null_count_df['null_%'] = round((null_count_df['null_count'] / profile.total) * 100, self.sigfig)
         profile.schema_df = profile.schema_df.join(null_count_df)
@@ -69,18 +68,18 @@ class SQLServer(DataSource):
 
 
     def __count_null_query(self, profile):
-        queries = ['(SELECT COUNT(1) FROM {}) as Total'.format(profile.table_name)]
+        queries = []
         for column_name in profile.schema_df.index:
-            queries += [self.__count_null_query_for_a_column(profile.table_name, column_name)]
-        return 'SELECT {}'.format(', '.join(queries))
+            queries += [self.__count_null_query_for_a_column(profile.table_name, column_name, profile.total)]
+        return 'SELECT\n{0}\nFROM {1}'.format(',\n'.join(queries), profile.table_name)
 
 
-    def __count_null_query_for_a_column(self, table_name, column_name):
+    def __count_null_query_for_a_column(self, table_name, column_name, total):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return '(SELECT COUNT(1) FROM {} WHERE [{}] is NULL) as [{}]'.format(table_name, column_name, column_name)
+        return '{0} - COUNT([{1}]) AS [{1}]'.format(total, column_name)
 
 
     def get_deviation(self, profile):
