@@ -9,6 +9,14 @@
 - Check "Joinability" between 2 tables
 - // TODO: and more
 
+# Why?
+
+It's known that "Data Profiling" needs to be done with scanning all the rows in a table. If you try to do this naively by `pandas` or any libraries which internally use `pandas`, it's not avoidable to use bunch of memory of your local machine and freeze your work.
+
+`dataviper` is a SQL-based Data Profiling tool, which simply and dynamically generates SQLs and lets the database machine do the annoying calculation.
+
+With `dataviper`, you don't have to have massive local computer. All you need are a stable network and reachable SQL db.
+
 # Connection
 
 You can choose your data source from
@@ -16,7 +24,7 @@ You can choose your data source from
 - [x] SQL Server
 - [ ] MySQL
 - [ ] PostgreSQL
-- [ ] CSV
+- [x] CSV
 - [ ] Excel
 
 ```python
