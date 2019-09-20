@@ -3,9 +3,12 @@ import setuptools
 with open("README.md", "r") as f:
     long_description = f.read()
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 setuptools.setup(
     name="dataviper",
-    version="0.0.1",
+    version="0.1.1",
     author="Hiromu Ochiai",
     author_email="otiai10@gmail.com",
     description="A data quality assessment tool based on SQL",
@@ -17,4 +20,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
     ],
+    install_requires=requirements,
 )
