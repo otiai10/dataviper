@@ -13,6 +13,7 @@ class Profile():
     def to_csv(self, outdir="."):
         file_path = os.path.join(outdir, "profile_{}.csv".format(self.table_name))
         self.schema_df.to_csv(file_path)
+        print("REPORT CREATED:", file_path)
 
 
     def to_excel(self, outdir='.'):
@@ -20,7 +21,7 @@ class Profile():
         self.__beautify_worksheet(workbook.active)
         filename = os.path.join(outdir, "profile_{}.xlsx".format(self.table_name))
         workbook.save(filename)
-
+        print("REPORT CREATED:", filename)
 
     def __beautify_worksheet(self, ws):
         for row in list(ws.rows)[1:]: # Without the header row

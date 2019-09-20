@@ -46,17 +46,23 @@ class CSV(DataSource):
 
 
     def count_total(self, profile):
+        self.logger.enter('START', 'count_total')
         profile.total = len(profile.rawdata)
+        self.logger.exit('DONE', 'count_total')
         return profile
 
 
     def count_null(self, profile):
+        self.logger.enter('START', 'count_null')
         profile.schema_df['null_count'] = 0.0
         profile.schema_df['null_%'] = 0.0
         for col in profile.rawdata.columns:
+            self.logger.enter('START', 'count_null', col)
             null_count = self.__count_null_for(col, profile.rawdata[col])
             profile.schema_df.at[col, 'null_count'] = null_count
             profile.schema_df.at[col, 'null_%'] = float(null_count / profile.total) * 100
+            self.logger.exit('DONE', 'count_null', col)
+        self.logger.exit('DONE', 'count_null')
         return profile
 
 
@@ -65,12 +71,21 @@ class CSV(DataSource):
 
 
     def count_unique(self, profile):
+        self.logger.enter('START', 'count_unique')
         profile.schema_df['unique_count'] = 0.0
         profile.schema_df['unique_%'] = 0.0
+        for col in profile.rawdata.columns:
+            self.logger.enter('START', 'count_unique', col)
+            unique_count = profile.rawdata[col].unique().size
+            profile.schema_df.at[col, 'unique_count'] = unique_count
+            profile.schema_df.at[col, 'unique_%'] = float(unique_count / profile.total) * 100
+            self.logger.exit('DONE', 'count_unique', col)
+        self.logger.exit('DONE', 'count_unique')
         return profile
 
 
     def get_deviation(self, profile):
+        self.logger.enter('START', 'get_deviation')
         profile.schema_df['min'] = np.nan
         profile.schema_df['max'] = np.nan
         profile.schema_df['avg'] = np.nan
@@ -79,11 +94,14 @@ class CSV(DataSource):
         for col in profile.rawdata.columns:
             if profile.schema_df['data_type'][col] not in ('int', 'float'):
                 continue
+            self.logger.enter('START', 'get_deviation', col)
             profile.schema_df.at[col, 'min'] = profile.rawdata[col].min()
             profile.schema_df.at[col, 'max'] = profile.rawdata[col].max()
             profile.schema_df.at[col, 'avg'] = profile.rawdata[col].mean()
             profile.schema_df.at[col, 'med'] = profile.rawdata[col].median()
             profile.schema_df.at[col, 'std'] = profile.rawdata[col].std()
+            self.logger.exit('DONE', 'get_deviation', col)
+        self.logger.exit('DONE', 'get_deviation')
         return profile
 
 
