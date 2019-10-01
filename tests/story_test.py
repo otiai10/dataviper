@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 from dataviper.client import Client
-from dataviper.source import CSV
+from dataviper.source.csv import CSV
 
 def test_story_csv():
     outdir = os.path.join(os.path.dirname(__file__), 'data', 'out')
