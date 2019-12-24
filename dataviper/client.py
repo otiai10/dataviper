@@ -59,3 +59,7 @@ class Client():
         if len(invalid_keys) > 0:
             raise Exception('Keys to be joined on MUST be either of tuple or str, but got {}'.format(type(list(invalid_keys)[0])))
         return self.source.joinability(on)
+
+
+    def histogram(self, profile, column):
+        return self.source.histogram(profile, column)

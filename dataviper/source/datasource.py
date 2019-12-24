@@ -40,3 +40,8 @@ class DataSource(ABC):
     @abstractclassmethod
     def joinability(self, on):
         pass
+
+
+    @abstractclassmethod
+    def histogram(self, profile, column):
+        pass

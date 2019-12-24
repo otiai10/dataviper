@@ -6,6 +6,7 @@ from dataviper.logger import IndentLogger
 from dataviper.categorical_column import CategoricalColumn
 from dataviper.report.profile import Profile
 from dataviper.report.joinability import Joinability
+from dataviper.report.histogram import Histogram
 
 class SQLServer(DataSource):
     """
@@ -308,3 +309,20 @@ class SQLServer(DataSource):
             '''.format(table_x[0], table_y[0], ' AND '.join(keys)).strip()
         else:
             raise Exception("unsupported type combinations on keys: {} and {}", type(table_x[1]), type(table_y[1]))
+
+
+    def histogram(self, profile, column):
+        query = self.__query_for_range(profile, column)
+        df = pd.read_sql(query, self.__conn)
+        df.index = [column]
+        return Histogram()
+
+
+    def __query_for_range(self, profile, column_name, data_type=None):
+        return '''
+            SELECT
+                MIN([{1}]) AS min,
+                MAX([{1}]) AS max,
+                CAST(MAX([{1}]) AS FLOAT) - CAST(MIN[{1}] AS FLOAT) AS dif
+            FROM [{0}]
+        '''.format(profile.table_name, column_name)
