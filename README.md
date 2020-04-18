@@ -1,13 +1,30 @@
 # dataviper
 
-[![CircleCI](https://circleci.com/gh/otiai10/dataviper.svg?style=svg)](https://circleci.com/gh/otiai10/dataviper)
-
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
 - Create "Data Profile" report of a table
 - One-hot encode for "Categorical Columns" and create a "one-hot" table
 - Check "Joinability" between 2 tables
 - // TODO: and more
+
+# Example
+
+```python
+from dataviper import Client
+from dataviper.source import MySQL
+
+client = Client(source=MySQL({
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'xxxxxx',
+    'database': 'your_database'
+}))
+
+with client.connect():
+    profile = client.profile('Your_Table')
+    profile.to_excel()
+    # Then you will get 'profile_Your_Table.xlsx' 🤗
+```
 
 # Why?
 
@@ -21,10 +38,22 @@ With `dataviper`, you don't have to have massive local computer. All you need ar
 
 You can choose your data source from
 
-- [x] SQL Server
+- [ ] SQL Server
+    - [x] `profile`
+    - [x] `pivot`
+    - [x] `joinability`
+    - [ ] `histogram`
 - [ ] MySQL
+    - [x] `profile`
+    - [ ] `pivot`
+    - [ ] `joinability`
+    - [ ] `histogram`
 - [ ] PostgreSQL
-- [x] CSV
+- [ ] CSV
+    - [x] `profile`
+    - [ ] `pivot`
+    - [ ] `joinability`
+    - [ ] `histogram`
 - [ ] Excel
 
 ```python

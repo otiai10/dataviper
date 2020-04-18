@@ -1,4 +1,4 @@
-from dataviper.client import Client
+from dataviper import Client
 
 def test_client_placeholder():
     client = Client(source=None)

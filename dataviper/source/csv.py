@@ -121,3 +121,8 @@ class CSV(DataSource):
     def joinability(self, on):
         logging.warning("CSV joinability check is not supported yet.")
         return
+
+
+    def histogram(self, profile, column):
+        logging.warning("CSV histogram is not supported yet.")
+        return

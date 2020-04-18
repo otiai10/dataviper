@@ -1,16 +1,13 @@
-import sys
-import pypyodbc
 import pandas as pd
 from dataviper.source.datasource import DataSource
 from dataviper.logger import IndentLogger
-from dataviper.categorical_column import CategoricalColumn
 from dataviper.report.profile import Profile
-from dataviper.report.joinability import Joinability
-from dataviper.report.histogram import Histogram
 
-class SQLServer(DataSource):
+import pymysql
+
+class MySQL(DataSource):
     """
-    class SQLServer is a connection provider for SQL Server
+    class MySQL is a connection provider for MySQL
     and query builder as well.
     """
 
@@ -19,14 +16,9 @@ class SQLServer(DataSource):
         self.sigfig = sigfig
         self.logger = logger
 
-
-    def connect(self, config):
+    def connect(self, config=None):
         config = config if config is not None else self.config
-        connectString = ''
-        for key, value in list(config.items()):
-            if value is not None:
-                connectString += (key + '=' + value + ';')
-        self.__conn = pypyodbc.connect(connectString)
+        self.__conn = pymysql.connect(**config)
         return self.__conn
 
 
@@ -44,7 +36,7 @@ class SQLServer(DataSource):
 
     def count_total(self, profile):
         self.logger.enter("START: count_total")
-        query = "SELECT COUNT(*) AS total FROM [{}]".format(profile.table_name)
+        query = "SELECT COUNT(*) AS total FROM {}".format(profile.table_name)
         df = pd.read_sql(query, self.__conn)
         profile.total = int(df['total'][0])
         self.logger.exit("DONE: count_total")
@@ -52,7 +44,13 @@ class SQLServer(DataSource):
 
 
     def __get_schema_query(self, table_name):
-        return "SELECT * FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='{}'".format(table_name)
+        return '''
+            SELECT
+                COLUMN_NAME as column_name,
+                COLUMN_TYPE as data_type
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME='{}'
+        '''.format(table_name).strip()
 
 
     def count_null(self, profile):
@@ -80,7 +78,7 @@ class SQLServer(DataSource):
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return '{0} - COUNT([{1}]) AS [{1}]'.format(total, column_name)
+        return '{0} - COUNT({1}) AS {1}'.format(total, column_name)
 
 
     def get_deviation(self, profile):
@@ -120,33 +118,33 @@ class SQLServer(DataSource):
         if data_type in ('bigint', 'int', 'float', 'bit'):
             return '''
                 SELECT
-                    MIN(CAST([{0}] AS FLOAT)) as min,
-                    MAX(CAST([{0}] AS FLOAT)) as max,
-                    AVG(CAST([{0}] AS FLOAT)) as avg,
-                    STDEV(CAST([{0}] AS FLOAT)) as std
-                FROM [{1}]
+                    MIN(CAST({0} AS FLOAT)) as min,
+                    MAX(CAST({0} AS FLOAT)) as max,
+                    AVG(CAST({0} AS FLOAT)) as avg,
+                    STDDEV(CAST({0} AS FLOAT)) as std
+                FROM {1}
             '''.format(column_name, table_name).strip()
         if data_type in ('datetime'):
             return '''
                 SELECT
-                    MIN([{0}]) as min,
-                    MAX([{0}]) as max,
-                    CAST(AVG(CAST([{0}] AS FLOAT)) AS DATETIME) as avg
-                FROM [{1}]
+                    MIN({0}) as min,
+                    MAX({0}) as max,
+                    CAST(AVG(CAST({0} AS FLOAT)) AS DATETIME) as avg
+                FROM {1}
             '''.format(column_name, table_name).strip()
         if data_type in ('date'):
             return '''
                 SELECT
-                    MIN([{0}]) as min,
-                    MAX([{0}]) as max,
-                    CAST(AVG(CAST([{0}] AS INT)) AS DATE) as avg
-                FROM [{1}]
+                    MIN({0}) as min,
+                    MAX({0}) as max,
+                    CAST(AVG(CAST({0} AS INT)) AS DATE) as avg
+                FROM {1}
             '''
         return '''
             SELECT
-                MIN([{0}]) as min,
-                MAX([{0}]) as max
-            FROM [{1}]
+                MIN({0}) as min,
+                MAX({0}) as max
+            FROM {1}
         '''.format(column_name, table_name).strip()
 
 
@@ -178,32 +176,37 @@ class SQLServer(DataSource):
         TODO: Don't use .format, use SQL placeholder and parameter markers.
               See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        return 'SELECT COUNT(DISTINCT [{0}]) as unique_count FROM {1}'.format(column_name, table_name)
+        return 'SELECT COUNT(DISTINCT {0}) as unique_count FROM {1}'.format(column_name, table_name)
 
 
     def get_examples(self, profile, count=8):
         self.logger.enter("START: get_examples")
         aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
-        try:
-            top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
-            for column_name in top_df.columns.values:
-                aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
-            last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
-            for column_name in last_df.columns.values:
-                aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
-        except Exception as e:
-            self.logger.error("get_deviation", e)
+        # try:
+        top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
+        for column_name in top_df.columns.values:
+            aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
+        last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
+        for column_name in last_df.columns.values:
+            aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
+        # except Exception as e:
+        # self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
         self.logger.exit("DONE: get_examples")
         return profile
 
 
     def __get_examples_query(self, profile, count=8, desc=False):
-        """
-        TODO: Don't use .format, use SQL placeholder and parameter markers.
-              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
-        """
-        return 'SELECT TOP {0} * FROM {1} ORDER BY [{2}] {3}'.format(count, profile.table_name, self.infer_primary_key(profile), 'DESC' if desc else 'ASC')
+        # """
+        # TODO: Don't use .format, use SQL placeholder and parameter markers.
+        #       See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+        # """
+        return 'SELECT * FROM {1} ORDER BY {2} {3} LIMIT {0}'.format(
+            count,
+            profile.table_name,
+            self.infer_primary_key(profile),
+            'DESC' if desc else 'ASC'
+        )
 
 
     def infer_primary_key(self, profile):
@@ -220,109 +223,118 @@ class SQLServer(DataSource):
         return profile.schema_df.index[0]
 
     def pivot(self, profile, key, categorical_columns, result_table, commit=False):
-        self.logger.enter("START: pivot")
-        profile = self.collect_category_values(profile, categorical_columns)
-        targets = self.__query_for_onehot_columns(key, profile)
-        query = "SELECT\n{0}\nINTO {1}\nFROM {2}".format(targets, result_table, profile.table_name)
-        if commit:
-            cur = self.__conn.cursor()
-            cur.execute(query).commit()
-        else:
-            with open('{}.sql'.format(result_table), 'wb') as f:
-                f.write(query.encode())
-        self.logger.exit("DONE: pivot")
-        return profile
+        # self.logger.enter("START: pivot")
+        # profile = self.collect_category_values(profile, categorical_columns)
+        # targets = self.__query_for_onehot_columns(key, profile)
+        # query = "SELECT\n{0}\nINTO {1}\nFROM {2}".format(targets, result_table, profile.table_name)
+        # if commit:
+        #     cur = self.__conn.cursor()
+        #     cur.execute(query).commit()
+        # else:
+        #     with open('{}.sql'.format(result_table), 'wb') as f:
+        #         f.write(query.encode())
+        # self.logger.exit("DONE: pivot")
+        # return profile
+        pass
 
 
     def __query_for_onehot_columns(self, key, profile):
-        if type(key) is str:
-            select_targets = ['[{}]'.format(key)]
-        elif type(key) is list:
-            select_targets = list(map(lambda k: '[{}]'.format(k), key))
-        for cc in profile.categorical_columns.values():
-            select_targets.append(self.cases_query_for_a_categorical_column(cc))
-        return ",\n".join(select_targets)
+        # if type(key) is str:
+        #     select_targets = ['[{}]'.format(key)]
+        # elif type(key) is list:
+        #     select_targets = list(map(lambda k: '[{}]'.format(k), key))
+        # for cc in profile.categorical_columns.values():
+        #     select_targets.append(self.cases_query_for_a_categorical_column(cc))
+        # return ",\n".join(select_targets)
+        pass
 
 
     def collect_category_values(self, profile, categorical_columns):
-        for column_name in categorical_columns:
-            self.collect_category_values_on(profile, column_name)
-        return profile
+        # for column_name in categorical_columns:
+        #     self.collect_category_values_on(profile, column_name)
+        # return profile
+        pass
 
 
     def collect_category_values_on(self, profile, column_name):
-        query = "SELECT DISTINCT [{0}] FROM [{1}] WHERE [{0}] IS NOT NULL".format(column_name, profile.table_name)
-        df = pd.read_sql(query, self.__conn)
-        # Some clean ups
-        vals = list(map(lambda val: val.strip(), filter(lambda val: val, df.iloc[:, 0].tolist())))
-        profile.categorical_columns[column_name] = CategoricalColumn(column_name, vals)
-        return profile
+        # query = "SELECT DISTINCT [{0}] FROM [{1}] WHERE [{0}] IS NOT NULL".format(column_name, profile.table_name)
+        # df = pd.read_sql(query, self.__conn)
+        # # Some clean ups
+        # vals = list(map(lambda val: val.strip(), filter(lambda val: val, df.iloc[:, 0].tolist())))
+        # profile.categorical_columns[column_name] = CategoricalColumn(column_name, vals)
+        # return profile
+        pass
 
 
     def cases_query_for_a_categorical_column(self, cat_column):
-        cases = []
-        for val in cat_column.values:
-            query = "CASE WHEN ([{0}] = '{1}') THEN 1 ELSE 0 END AS [{0}_{1}]".format(cat_column.name, val)
-            cases.append(query)
-        return ",\n".join(cases)
+        # cases = []
+        # for val in cat_column.values:
+        #     query = "CASE WHEN ([{0}] = '{1}') THEN 1 ELSE 0 END AS [{0}_{1}]".format(cat_column.name, val)
+        #     cases.append(query)
+        # return ",\n".join(cases)
+        pass
 
 
     def joinability(self, on):
-        self.logger.enter("START: joinability")
-        [table_x, table_y] = on.items()
-        query = self.__query_for_joinability(table_x, table_y)
-        df = pd.read_sql(query, self.__conn)
-        m_c = df['match_count'][0]
-        x_total = df['x_total'][0]
-        x_drop = x_total - m_c
-        y_total = df['y_total'][0]
-        y_drop = y_total - m_c
-        self.logger.exit("DONE: joinability")
-        return Joinability(
-            table_x,
-            table_y,
-            pd.DataFrame([
-                [table_x[0], table_x[1], x_total, m_c, (m_c / x_total) * 100, x_drop, (x_drop / x_total) * 100],
-                [table_y[0], table_y[1], y_total, m_c, (m_c / y_total) * 100, y_drop, (y_drop / y_total) * 100]
-            ], columns=['table', 'key', 'total', 'match', 'match_%', 'drop', 'drop_%']).set_index('table')
-        )
+        # self.logger.enter("START: joinability")
+        # [table_x, table_y] = on.items()
+        # query = self.__query_for_joinability(table_x, table_y)
+        # df = pd.read_sql(query, self.__conn)
+        # m_c = df['match_count'][0]
+        # x_total = df['x_total'][0]
+        # x_drop = x_total - m_c
+        # y_total = df['y_total'][0]
+        # y_drop = y_total - m_c
+        # self.logger.exit("DONE: joinability")
+        # return Joinability(
+        #     table_x,
+        #     table_y,
+        #     pd.DataFrame([
+        #         [table_x[0], table_x[1], x_total, m_c, (m_c / x_total) * 100, x_drop, (x_drop / x_total) * 100],
+        #         [table_y[0], table_y[1], y_total, m_c, (m_c / y_total) * 100, y_drop, (y_drop / y_total) * 100]
+        #     ], columns=['table', 'key', 'total', 'match', 'match_%', 'drop', 'drop_%']).set_index('table')
+        # )
+        pass
 
 
     def __query_for_joinability(self, table_x, table_y):
-        if type(table_x[1]) is str and type(table_y[1]) is str:
-            return '''
-                SELECT
-                    (SELECT COUNT(1) FROM [{0}]) as x_total,
-                    (SELECT COUNT(1) FROM [{2}]) as y_total,
-                    (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
-            '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()
-        elif type(table_x[1]) is list and type(table_y[1]) is list or type(table_y[1]) is tuple and type(table_y[1]) is tuple:
-            keys = []
-            for (i, k_x) in enumerate(table_x[1]):
-                k_y = table_y[i]
-                keys.append('[{}].[{}] = [{}].[{}]'.format(table_x[0], k_x, table_y[0], k_y))
-            return '''
-                SELECT
-                    (SELECT COUNT(1) FROM [{0}]) as x_total,
-                    (SELECT COUNT(1) FROM [{1}]) as y_total,
-                    (SELECT COUNT(1) FROM [{0}] INNER JOIN [{1}] ON {2}) as match_count
-            '''.format(table_x[0], table_y[0], ' AND '.join(keys)).strip()
-        else:
-            raise Exception("unsupported type combinations on keys: {} and {}", type(table_x[1]), type(table_y[1]))
+        # if type(table_x[1]) is str and type(table_y[1]) is str:
+        #     return '''
+        #         SELECT
+        #             (SELECT COUNT(1) FROM [{0}]) as x_total,
+        #             (SELECT COUNT(1) FROM [{2}]) as y_total,
+        #             (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
+        #     '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()
+        # elif type(table_x[1]) is list and type(table_y[1]) is list or type(table_y[1]) is tuple and type(table_y[1]) is tuple:
+        #     keys = []
+        #     for (i, k_x) in enumerate(table_x[1]):
+        #         k_y = table_y[i]
+        #         keys.append('[{}].[{}] = [{}].[{}]'.format(table_x[0], k_x, table_y[0], k_y))
+        #     return '''
+        #         SELECT
+        #             (SELECT COUNT(1) FROM [{0}]) as x_total,
+        #             (SELECT COUNT(1) FROM [{1}]) as y_total,
+        #             (SELECT COUNT(1) FROM [{0}] INNER JOIN [{1}] ON {2}) as match_count
+        #     '''.format(table_x[0], table_y[0], ' AND '.join(keys)).strip()
+        # else:
+        #     raise Exception("unsupported type combinations on keys: {} and {}", type(table_x[1]), type(table_y[1]))
+        pass
 
 
     def histogram(self, profile, column):
-        query = self.__query_for_range(profile, column)
-        df = pd.read_sql(query, self.__conn)
-        df.index = [column]
-        return Histogram()
+        # query = self.__query_for_range(profile, column)
+        # df = pd.read_sql(query, self.__conn)
+        # df.index = [column]
+        # return Histogram()
+        pass
 
 
     def __query_for_range(self, profile, column_name, data_type=None):
-        return '''
-            SELECT
-                MIN([{1}]) AS min,
-                MAX([{1}]) AS max,
-                CAST(MAX([{1}]) AS FLOAT) - CAST(MIN[{1}] AS FLOAT) AS dif
-            FROM [{0}]
-        '''.format(profile.table_name, column_name)
+        # return '''
+        #     SELECT
+        #         MIN([{1}]) AS min,
+        #         MAX([{1}]) AS max,
+        #         CAST(MAX([{1}]) AS FLOAT) - CAST(MIN[{1}] AS FLOAT) AS dif
+        #     FROM [{0}]
+        # '''.format(profile.table_name, column_name)
+        pass
