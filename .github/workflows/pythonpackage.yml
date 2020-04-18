@@ -17,7 +17,8 @@ jobs:
         image: mysql:5.7
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: viper_test
+          MYSQL_DATABASE: dataviper_test
+          MYSQL_ROOT_PASSWORD: passwordpassword
         ports:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -25,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6]
 
     steps:
     - uses: actions/checkout@v2
@@ -47,7 +48,9 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       env:
-        DB_PORT: ${{ job.services.mysql.ports[3306] }}
+        MYSQL_PORT: ${{ job.services.mysql.ports[3306] }}
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_ROOT_PASSWORD: passwordpassword
       run: |
         pip install pytest
         pytest
