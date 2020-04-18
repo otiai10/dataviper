@@ -1,6 +1,8 @@
 # dataviper
 
 [![PyPI version](https://badge.fury.io/py/dataviper.svg)](https://badge.fury.io/py/dataviper)
+[![GitHub Action](https://github.com/otiai10/dataviper/workflows/Python%20package/badge.svg)](https://github.com/otiai10/dataviper/actions)
+[![codecov](https://codecov.io/gh/otiai10/dataviper/branch/master/graph/badge.svg)](https://codecov.io/gh/otiai10/dataviper)
 
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
