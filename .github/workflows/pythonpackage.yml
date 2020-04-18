@@ -53,4 +53,4 @@ jobs:
         MYSQL_ROOT_PASSWORD: passwordpassword
       run: |
         pip install pytest
-        pytest
+        pytest --cov=dataviper -v
