@@ -8,10 +8,10 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="dataviper",
-    version="0.1.1",
+    version="0.1.4",
     author="Hiromu Ochiai",
     author_email="otiai10@gmail.com",
-    description="A data quality assessment tool based on SQL",
+    description="A simple Data Quality Assessment Tool based on SQL",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/otiai10/dataviper",
