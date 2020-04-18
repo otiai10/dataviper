@@ -1,18 +1,17 @@
 import os
-import ast
-import pandas as pd
-import numpy as np
 import logging
-from dataviper.source.datasource import DataSource
-from dataviper.report.profile import Profile
+import numpy as np
+import pandas as pd
 from dataviper.logger import IndentLogger
+from dataviper.report.profile import Profile
+from dataviper.source.datasource import DataSource
+
 
 class CSV(DataSource):
 
     def __init__(self, logger=IndentLogger()):
         logging.warning('NOTE: CSV calc might require much memory of your computer.')
         self.logger = logger
-
 
     def get_schema(self, csv_file_name, cols=[]):
         self.logger.enter('START', 'get_schema')
@@ -33,7 +32,6 @@ class CSV(DataSource):
         self.logger.exit('DONE', 'get_schema')
         return profile
 
-
     def infer_data_type(self, values, limit=-1):
         """
         https://docs.python.org/3/library/ast.html#ast.literal_eval
@@ -44,13 +42,11 @@ class CSV(DataSource):
             types[t] = types.get(t, 0) + 1
         return max(types.keys(), key=lambda k: types[k]).__name__
 
-
     def count_total(self, profile):
         self.logger.enter('START', 'count_total')
         profile.total = len(profile.rawdata)
         self.logger.exit('DONE', 'count_total')
         return profile
-
 
     def count_null(self, profile):
         self.logger.enter('START', 'count_null')
@@ -65,10 +61,8 @@ class CSV(DataSource):
         self.logger.exit('DONE', 'count_null')
         return profile
 
-
     def __count_null_for(self, col, values):
         return values.isna().sum()
-
 
     def count_unique(self, profile):
         self.logger.enter('START', 'count_unique')
@@ -82,7 +76,6 @@ class CSV(DataSource):
             self.logger.exit('DONE', 'count_unique', col)
         self.logger.exit('DONE', 'count_unique')
         return profile
-
 
     def get_deviation(self, profile):
         self.logger.enter('START', 'get_deviation')
@@ -104,15 +97,13 @@ class CSV(DataSource):
         self.logger.exit('DONE', 'get_deviation')
         return profile
 
-
     def get_examples(self, profile, count=5):
         profile.schema_df['top_{}_examples'.format(count)] = [[]] * len(profile.schema_df)
         profile.schema_df['last_{}_examples'.format(count)] = [[]] * len(profile.schema_df)
         for col in profile.rawdata.columns:
-            profile.schema_df.at[col, 'top_{}_examples'.format(count)]  = profile.rawdata[col].head(n=count).tolist()
+            profile.schema_df.at[col, 'top_{}_examples'.format(count)] = profile.rawdata[col].head(n=count).tolist()
             profile.schema_df.at[col, 'last_{}_examples'.format(count)] = profile.rawdata[col].tail(n=count).tolist()
         return profile
-
 
     def pivot(self, profile, key, categorical_columns, result_table, **kwargs):
         logging.warning("CSV pivot is not supported yet.")
@@ -121,7 +112,6 @@ class CSV(DataSource):
     def joinability(self, on):
         logging.warning("CSV joinability check is not supported yet.")
         return
-
 
     def histogram(self, profile, column):
         logging.warning("CSV histogram is not supported yet.")

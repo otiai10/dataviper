@@ -1,9 +1,10 @@
 import pandas as pd
-from dataviper.source.datasource import DataSource
 from dataviper.logger import IndentLogger
 from dataviper.report.profile import Profile
+from dataviper.source.datasource import DataSource
 
 import pymysql
+
 
 class MySQL(DataSource):
     """
@@ -21,7 +22,6 @@ class MySQL(DataSource):
         self.__conn = pymysql.connect(**config)
         return self.__conn
 
-
     def get_schema(self, table_name):
         self.logger.enter("START: get_schema")
         query = self.__get_schema_query(table_name)
@@ -33,7 +33,6 @@ class MySQL(DataSource):
         self.logger.exit("DONE: get_schema")
         return profile
 
-
     def count_total(self, profile):
         self.logger.enter("START: count_total")
         query = "SELECT COUNT(*) AS total FROM {}".format(profile.table_name)
@@ -41,7 +40,6 @@ class MySQL(DataSource):
         profile.total = int(df['total'][0])
         self.logger.exit("DONE: count_total")
         return profile
-
 
     def __get_schema_query(self, table_name):
         return '''
@@ -51,7 +49,6 @@ class MySQL(DataSource):
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME='{}'
         '''.format(table_name).strip()
-
 
     def count_null(self, profile):
         self.logger.enter("START: count_null")
@@ -65,21 +62,19 @@ class MySQL(DataSource):
         self.logger.exit("DONE: count_null")
         return profile
 
-
     def __count_null_query(self, profile):
         queries = []
         for column_name in profile.schema_df.index:
             queries += [self.__count_null_query_for_a_column(profile.table_name, column_name, profile.total)]
         return 'SELECT\n{0}\nFROM {1}'.format(',\n'.join(queries), profile.table_name)
 
-
     def __count_null_query_for_a_column(self, table_name, column_name, total):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
-              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+              See https://docs.microsoft.com/en-us/sql
+                    /odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         return '{0} - COUNT({1}) AS {1}'.format(total, column_name)
-
 
     def get_deviation(self, profile):
         self.logger.enter("START: get_deviation")
@@ -87,14 +82,14 @@ class MySQL(DataSource):
         for column_name in profile.schema_df.index:
             data_type = profile.schema_df.at[column_name, 'data_type']
             df = self.__get_deviation_df_for_a_column(profile.table_name, column_name, data_type)
-            if df is not None: devis = devis.append(df, sort=False)
+            if df is not None:
+                devis = devis.append(df, sort=False)
         profile.schema_df = profile.schema_df.join(devis, how='left')
         self.logger.exit("DONE: get_deviation")
         return profile
 
-
     def __get_deviation_df_for_a_column(self, table_name, column_name, data_type='int'):
-        if not data_type in ('int', 'bigint', 'float', 'date', 'datetime', 'bit', 'varchar', 'nvarchar'):
+        if data_type not in ('int', 'bigint', 'float', 'date', 'datetime', 'bit', 'varchar', 'nvarchar'):
             self.logger.info("PASS:", column_name, "because it's {}".format(data_type))
             return
         try:
@@ -109,11 +104,11 @@ class MySQL(DataSource):
             self.logger.exit("DONE:", column_name)
         return None
 
-
     def __get_deviation_query_for_a_column(self, table_name, column_name, data_type):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
-              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+              See https://docs.microsoft.com/en-us/sql
+                    /odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         if data_type in ('bigint', 'int', 'float', 'bit'):
             return '''
@@ -147,7 +142,6 @@ class MySQL(DataSource):
             FROM {1}
         '''.format(column_name, table_name).strip()
 
-
     def count_unique(self, profile):
         self.logger.enter("START: count_unique")
         if profile.total is None:
@@ -163,43 +157,44 @@ class MySQL(DataSource):
         self.logger.exit("DONE: count_unique")
         return profile
 
-
     def __count_unique_df_for_a_column(self, table_name, column_name):
         query = self.__count_unique_query_for_a_column(table_name, column_name)
         df = pd.read_sql(query, self.__conn)
         df.index = [column_name]
         return df
 
-
     def __count_unique_query_for_a_column(self, table_name, column_name):
         """
         TODO: Don't use .format, use SQL placeholder and parameter markers.
-              See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+              See https://docs.microsoft.com/en-us/sql
+                    /odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
         return 'SELECT COUNT(DISTINCT {0}) as unique_count FROM {1}'.format(column_name, table_name)
 
-
     def get_examples(self, profile, count=8):
         self.logger.enter("START: get_examples")
-        aggregation = pd.DataFrame(columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)], index=profile.schema_df.index.values)
-        # try:
-        top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
-        for column_name in top_df.columns.values:
-            aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
-        last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
-        for column_name in last_df.columns.values:
-            aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
-        # except Exception as e:
-        # self.logger.error("get_deviation", e)
+        aggregation = pd.DataFrame(
+            columns=['examples_top_{}'.format(count), 'examples_last_{}'.format(count)],
+            index=profile.schema_df.index.values
+        )
+        try:
+            top_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=False), self.__conn)
+            for column_name in top_df.columns.values:
+                aggregation.at[column_name, 'examples_top_{}'.format(count)] = top_df[column_name].values
+            last_df = pd.read_sql(self.__get_examples_query(profile, count=count, desc=True), self.__conn)
+            for column_name in last_df.columns.values:
+                aggregation.at[column_name, 'examples_last_{}'.format(count)] = last_df[column_name].values
+        except Exception as e:
+            self.logger.error("get_deviation", e)
         profile.schema_df = profile.schema_df.join(aggregation, how='left')
         self.logger.exit("DONE: get_examples")
         return profile
 
-
     def __get_examples_query(self, profile, count=8, desc=False):
         # """
         # TODO: Don't use .format, use SQL placeholder and parameter markers.
-        #       See https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
+        #       See https://docs.microsoft.com/en-us/sql
+        #             /odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         # """
         return 'SELECT * FROM {1} ORDER BY {2} {3} LIMIT {0}'.format(
             count,
@@ -207,7 +202,6 @@ class MySQL(DataSource):
             self.infer_primary_key(profile),
             'DESC' if desc else 'ASC'
         )
-
 
     def infer_primary_key(self, profile):
         """
@@ -237,7 +231,6 @@ class MySQL(DataSource):
         # return profile
         pass
 
-
     def __query_for_onehot_columns(self, key, profile):
         # if type(key) is str:
         #     select_targets = ['[{}]'.format(key)]
@@ -248,13 +241,11 @@ class MySQL(DataSource):
         # return ",\n".join(select_targets)
         pass
 
-
     def collect_category_values(self, profile, categorical_columns):
         # for column_name in categorical_columns:
         #     self.collect_category_values_on(profile, column_name)
         # return profile
         pass
-
 
     def collect_category_values_on(self, profile, column_name):
         # query = "SELECT DISTINCT [{0}] FROM [{1}] WHERE [{0}] IS NOT NULL".format(column_name, profile.table_name)
@@ -265,7 +256,6 @@ class MySQL(DataSource):
         # return profile
         pass
 
-
     def cases_query_for_a_categorical_column(self, cat_column):
         # cases = []
         # for val in cat_column.values:
@@ -273,7 +263,6 @@ class MySQL(DataSource):
         #     cases.append(query)
         # return ",\n".join(cases)
         pass
-
 
     def joinability(self, on):
         # self.logger.enter("START: joinability")
@@ -296,7 +285,6 @@ class MySQL(DataSource):
         # )
         pass
 
-
     def __query_for_joinability(self, table_x, table_y):
         # if type(table_x[1]) is str and type(table_y[1]) is str:
         #     return '''
@@ -305,7 +293,10 @@ class MySQL(DataSource):
         #             (SELECT COUNT(1) FROM [{2}]) as y_total,
         #             (SELECT COUNT(1) FROM [{0}] INNER JOIN [{2}] ON [{0}].[{1}] = [{2}].[{3}]) as match_count
         #     '''.format(table_x[0], table_x[1], table_y[0], table_y[1]).strip()
-        # elif type(table_x[1]) is list and type(table_y[1]) is list or type(table_y[1]) is tuple and type(table_y[1]) is tuple:
+        # elif type(table_x[1]) is list
+        #   and type(table_y[1]) is list
+        #   or type(table_y[1]) is tuple and type(table_y[1]) is tuple:
+        #
         #     keys = []
         #     for (i, k_x) in enumerate(table_x[1]):
         #         k_y = table_y[i]
@@ -320,14 +311,12 @@ class MySQL(DataSource):
         #     raise Exception("unsupported type combinations on keys: {} and {}", type(table_x[1]), type(table_y[1]))
         pass
 
-
     def histogram(self, profile, column):
         # query = self.__query_for_range(profile, column)
         # df = pd.read_sql(query, self.__conn)
         # df.index = [column]
         # return Histogram()
         pass
-
 
     def __query_for_range(self, profile, column_name, data_type=None):
         # return '''

@@ -1,5 +1,7 @@
 # dataviper
 
+[![PyPI version](https://badge.fury.io/py/dataviper.svg)](https://badge.fury.io/py/dataviper)
+
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
 - Create "Data Profile" report of a table

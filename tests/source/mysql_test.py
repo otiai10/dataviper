@@ -1,5 +1,6 @@
 from dataviper.source import MySQL
 
+
 def test_SQLServer_placeholder():
     source = MySQL()
     assert isinstance(source, MySQL)

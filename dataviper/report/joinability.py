@@ -3,6 +3,7 @@ from matplotlib import pyplot
 from matplotlib_venn import venn2
 from dataviper.report.utils import create_workbook_from_dataframe
 
+
 class Joinability():
     """
     Representing "joinability" report for 2 tables.
@@ -13,13 +14,11 @@ class Joinability():
         self.y = table_y
         self.report = report_df
 
-
     def to_excel(self, outdir="."):
         workbook = create_workbook_from_dataframe(self.report)
         filename = os.path.join(outdir, "joinability_{}_{}.xlsx".format(self.x[0], self.y[0]))
         workbook.save(filename)
         print("REPORT CREATED:", filename)
-
 
     def to_venn(self, outdir="."):
         (x_name, x_keys) = self.x
