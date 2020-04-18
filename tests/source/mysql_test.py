@@ -1,4 +1,4 @@
-from dataviper.source.mysql import MySQL
+from dataviper.source import MySQL
 
 def test_SQLServer_placeholder():
     source = MySQL()
@@ -11,7 +11,7 @@ def test_SQLServer_placeholder():
         profile = source.count_unique(profile)
         profile = source.get_deviation(profile)
         profile = source.get_examples(profile)
-        profile.to_excel()
+        # profile.to_excel()
         assert profile.schema_df.columns.tolist() == [
             'data_type',
             'null_count',
