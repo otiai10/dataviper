@@ -30,6 +30,8 @@ with client.connect():
     # Then you will get 'profile_Your_Table.xlsx' 🤗
 ```
 
+![image](https://user-images.githubusercontent.com/931554/79642622-00b70900-819f-11ea-89ff-524c9c93ceea.png)
+
 # Why?
 
 It's known that "Data Profiling" needs to be done with scanning all the rows in a table. If you try to do this naively by `pandas` or any libraries which internally use `pandas`, it's not avoidable to use bunch of memory of your local machine and freeze your work.
