@@ -21,6 +21,8 @@ def fixture_Sales_table():
     with pymysql.connect(**__MySQL_CONFIG__) as conn:
         for line in lines:
             conn.execute(line)
+        yield
+        conn.execute('DROP TABLE Sales')
 
 
 def test_MySQL_profile(fixture_Sales_table):
