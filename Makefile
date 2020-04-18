@@ -6,7 +6,7 @@ build:
 	python setup.py sdist
 
 clean:
-	rm -rf sdist
+	rm -rf dist
 
 release:
 	twine upload dist/*
