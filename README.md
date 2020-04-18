@@ -9,6 +9,25 @@
 - Check "Joinability" between 2 tables
 - // TODO: and more
 
+# Example
+
+```python
+from dataviper import Client
+from dataviper.source import MySQL
+
+client = Client(source=MySQL({
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'xxxxxx',
+    'database': 'your_database'
+}))
+
+with client.connect():
+    profile = client.profile('Your_Table')
+    profile.to_excel()
+    # Then you will get 'profile_Your_Table.xlsx' 🤗
+```
+
 # Why?
 
 It's known that "Data Profiling" needs to be done with scanning all the rows in a table. If you try to do this naively by `pandas` or any libraries which internally use `pandas`, it's not avoidable to use bunch of memory of your local machine and freeze your work.
@@ -21,10 +40,22 @@ With `dataviper`, you don't have to have massive local computer. All you need ar
 
 You can choose your data source from
 
-- [x] SQL Server
+- [ ] SQL Server
+    - [x] `profile`
+    - [x] `pivot`
+    - [x] `joinability`
+    - [ ] `histogram`
 - [ ] MySQL
+    - [x] `profile`
+    - [ ] `pivot`
+    - [ ] `joinability`
+    - [ ] `histogram`
 - [ ] PostgreSQL
-- [x] CSV
+- [ ] CSV
+    - [x] `profile`
+    - [ ] `pivot`
+    - [ ] `joinability`
+    - [ ] `histogram`
 - [ ] Excel
 
 ```python
