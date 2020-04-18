@@ -89,11 +89,13 @@ class MySQL(DataSource):
         return profile
 
     def __get_deviation_df_for_a_column(self, table_name, column_name, data_type='int'):
-        if data_type not in ('int', 'bigint', 'float', 'date', 'datetime', 'bit', 'varchar', 'nvarchar'):
+        if all(not data_type.startswith(t) for t in (
+            'int', 'bigint', 'float', 'date', 'datetime', 'bit', 'varchar', 'nvarchar'
+        )):
             self.logger.info("PASS:", column_name, "because it's {}".format(data_type))
             return
         try:
-            self.logger.enter("START:", column_name)
+            self.logger.enter("START:", column_name, data_type)
             query = self.__get_deviation_query_for_a_column(table_name, column_name, data_type)
             df = pd.read_sql(query, self.__conn)
             df.index = [column_name]
@@ -110,29 +112,29 @@ class MySQL(DataSource):
               See https://docs.microsoft.com/en-us/sql
                     /odbc/reference/develop-app/binding-parameter-markers?view=sql-server-2017
         """
-        if data_type in ('bigint', 'int', 'float', 'bit'):
-            return '''
-                SELECT
-                    MIN(CAST({0} AS FLOAT)) as min,
-                    MAX(CAST({0} AS FLOAT)) as max,
-                    AVG(CAST({0} AS FLOAT)) as avg,
-                    STDDEV(CAST({0} AS FLOAT)) as std
-                FROM {1}
-            '''.format(column_name, table_name).strip()
-        if data_type in ('datetime'):
+        if any(data_type.startswith(t) for t in ('bigint', 'int', 'float', 'bit')):
             return '''
                 SELECT
                     MIN({0}) as min,
                     MAX({0}) as max,
-                    CAST(AVG(CAST({0} AS FLOAT)) AS DATETIME) as avg
+                    AVG({0}) as avg,
+                    STD({0}) as std
                 FROM {1}
             '''.format(column_name, table_name).strip()
-        if data_type in ('date'):
+        if any(data_type.startswith(t) for t in ('datetime')):
             return '''
                 SELECT
                     MIN({0}) as min,
                     MAX({0}) as max,
-                    CAST(AVG(CAST({0} AS INT)) AS DATE) as avg
+                    CAST(AVG({0}) AS DATETIME) as avg
+                FROM {1}
+            '''.format(column_name, table_name).strip()
+        if any(data_type.startswith(t) for t in ('date')):
+            return '''
+                SELECT
+                    MIN({0}) as min,
+                    MAX({0}) as max,
+                    CAST(AVG({0}) AS DATE) as avg
                 FROM {1}
             '''
         return '''

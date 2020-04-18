@@ -1,12 +1,37 @@
+import os
+import pytest
 from dataviper.source import MySQL
 
+__MySQL_CONFIG__ = {
+    'user': os.getenv('MYSQL_USER', 'root'),
+    'password': os.getenv('MYSQL_PASSWORD', os.getenv('MYSQL_ROOT_PASSWORD', '')),
+    'host': os.getenv('MYSQL_HOST', 'localhost'),
+    'port': int(os.getenv('MYSQL_PORT', 3306)),
+    'database': os.getenv('MYSQL_DATABASE', 'dataviper_test')
+}
 
-def test_SQLServer_placeholder():
-    source = MySQL()
+
+@pytest.fixture
+def fixture_Sales_table():
+    import pymysql
+    sql_file_path = os.path.join(os.getcwd(), "tests", "data", "mysql", "Sales.sql")
+    lines = []
+    with open(sql_file_path) as sql_file:
+        lines = sql_file.read().split(';')
+    with pymysql.connect(**__MySQL_CONFIG__) as conn:
+        for line in lines:
+            conn.execute(line)
+        yield
+        conn.execute('DROP TABLE Sales')
+
+
+def test_MySQL_profile(fixture_Sales_table):
+    config = __MySQL_CONFIG__
+
+    source = MySQL(config)
     assert isinstance(source, MySQL)
 
-    config = {'user': 'root', 'password': '', 'database': 'viper_test'}
-    with source.connect(config):
+    with source.connect():
         profile = source.get_schema('Sales')
         profile = source.count_null(profile)
         profile = source.count_unique(profile)
