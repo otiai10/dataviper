@@ -13,6 +13,12 @@
 
 # Example
 
+```sh
+pip install dataviper
+```
+
+Your `main.py` will look like this
+
 ```python
 from dataviper import Client
 from dataviper.source import MySQL
@@ -27,7 +33,11 @@ client = Client(source=MySQL({
 with client.connect():
     profile = client.profile('Your_Table')
     profile.to_excel()
-    # Then you will get 'profile_Your_Table.xlsx' 🤗
+```
+
+```sh
+python3 main.py
+# Then you will get 'profile_Your_Table.xlsx' 🤗
 ```
 
 ![image](https://user-images.githubusercontent.com/931554/79642622-00b70900-819f-11ea-89ff-524c9c93ceea.png)
