@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import pandas as pd
 from dataviper.logger import IndentLogger
 from dataviper.report.profile import Profile
@@ -17,10 +18,14 @@ class MySQL(DataSource):
         self.sigfig = sigfig
         self.logger = logger
 
+    @contextmanager
     def connect(self, config=None):
         config = config if config is not None else self.config
         self.__conn = pymysql.connect(**config)
-        return self.__conn
+        try:
+            yield
+        finally:
+            self.__conn.close()
 
     def get_schema(self, table_name):
         self.logger.enter("START: get_schema")
