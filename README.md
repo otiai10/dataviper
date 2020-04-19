@@ -1,8 +1,21 @@
+- [dataviper](#dataviper)
+- [Example](#example)
+- [Why?](#why)
+- [Data Sources](#data-sources)
+- [APIs](#apis)
+  - [`profile`](#profile)
+  - [`pivot`](#pivot)
+  - [`joinability`](#joinability)
+- [Issues and TODOs](#issues-and-todos)
+
+---
+
 # dataviper
 
 [![PyPI version](https://badge.fury.io/py/dataviper.svg)](https://badge.fury.io/py/dataviper)
 [![GitHub Action](https://github.com/otiai10/dataviper/workflows/Python%20package/badge.svg)](https://github.com/otiai10/dataviper/actions)
 [![codecov](https://codecov.io/gh/otiai10/dataviper/branch/master/graph/badge.svg)](https://codecov.io/gh/otiai10/dataviper)
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](./dockerfiles/setup.Python3.6.Dockerfile)
 
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
@@ -50,7 +63,7 @@ It's known that "Data Profiling" needs to be done with scanning all the rows in 
 
 With `dataviper`, you don't have to have massive local computer. All you need are a stable network and reachable SQL db.
 
-# Connection
+# Data Sources
 
 You can choose your data source from
 
@@ -72,15 +85,9 @@ You can choose your data source from
     - [ ] `histogram`
 - [ ] Excel
 
-```python
-from dataviper.source import SQLServer
-from dataviper.client import Client
+# APIs
 
-source = SQLServer(your_config)
-client = Client(source=source)
-```
-
-# `profile`
+## `profile`
 
 Create "Data Profile" excel file of a specified table.
 
@@ -115,7 +122,7 @@ then you will get `profile_Sales.xlsx` file with
 | price      | int     | 0 | 0     | 6 | 85.71  | 70 | 920 | 307.1428 | 295.379 | [240,90,560] | [90,180,70] |
 | rep_id     | int     | 0 | 0     | 7 | 100.00 | 8003 |182234 | 96778.7142 | 51195.79065 | [115723,125901,8003] | [92231,100425,52934] |
 
-# `pivot`
+## `pivot`
 
 Spread categorical columns to N binary columns.
 
@@ -142,7 +149,7 @@ then you will get `Sales_PIVOT_YYYYmmddHHMM` table with
 | 6  |  0        | 1         | 0                | 0              | 1               |
 | 7  |  0        | 1         | 0                | 0              | 1               |
 
-# `joinability`
+## `joinability`
 
 Count how much 2 tables can be joined.
 
@@ -173,31 +180,6 @@ then you will get `join_Sales_Reps.xlsx` file with
 |:------:|:-------:|:------:|:-----:|:------:|:-----:|:------:|
 | Sales | [rep_id] | 7 | 6 | 85.714 | 1 | 14.285 |
 | Reps  | [id]     | 8 | 6 | 75.00 | 2 | 25.00 |
-
-# Example
-
-```python
-from dataviper.client import Client
-from dataviper.source import SQLServer
-
-config = {
-    'driver': '{ODBC Driver 17 for SQL Server}',
-    'server': 'sqlserver.my-host.com',
-    'database': 'my-database',
-}
-
-client = Client(source=SQLServer(config))
-
-with client.connect() as conn:
-
-    profile = client.profile('Sales')
-    profile.to_excel()
-    # File `profile_Sales.xlsx` is created
-
-    client.pivot(profile, 'id', ['region', 'sales_type'])
-    # Table `Sales_PIVOT_201908291732` is created
-
-```
 
 # Issues and TODOs
 
