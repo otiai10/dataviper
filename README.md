@@ -16,6 +16,8 @@
 [![GitHub Action](https://github.com/otiai10/dataviper/workflows/Python%20package/badge.svg)](https://github.com/otiai10/dataviper/actions)
 [![codecov](https://codecov.io/gh/otiai10/dataviper/branch/master/graph/badge.svg)](https://codecov.io/gh/otiai10/dataviper)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](./dockerfiles/setup.Python3.6.Dockerfile)
+[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](./dockerfiles/setup.Python3.7.Dockerfile)
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](./dockerfiles/setup.Python3.8.Dockerfile)
 
 `dataviper` is a SQL-based tool to get the basic data preparation done in easy way, with doing
 
