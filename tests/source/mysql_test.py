@@ -18,15 +18,11 @@ def fixture_Sales_table():
     lines = []
     with open(sql_file_path) as sql_file:
         lines = sql_file.read().split(';')
-    conn = pymysql.connect(**__MySQL_CONFIG__)
-    try:
-        with conn.cursor() as cur:
-            for line in lines:
-                cur.execute(line)
-            yield
-    finally:
-        # conn.cursor().execute('DROP TABLE Sales')
-        conn.close()
+    with pymysql.connect(**__MySQL_CONFIG__) as conn:
+        for line in lines:
+            conn.execute(line)
+        yield
+        conn.execute('DROP TABLE Sales')
 
 
 def test_MySQL_profile(fixture_Sales_table):
