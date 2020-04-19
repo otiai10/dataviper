@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+import os
+import argparse
+import dataviper
+
+parser = argparse.ArgumentParser(description='dataviper - Basic Data Quality Assessment Tool')
+
+parser.add_argument(
+    'command',
+    type=str, nargs=1,
+    help='dataviper command (default: profile)',
+    default='profile'
+)
+
+parser.add_argument(
+    '-t',
+    dest='table_name',
+    help='Table name to create profile',
+)
+
+args = parser.parse_args()
+print(args.table_name)
+
+table_name = args.table_name
+source = dataviper.source.MySQL({
+    'user': os.getenv('MYSQL_USER', 'root'),
+    'password': os.getenv('MYSQL_PASSWORD', os.getenv('MYSQL_ROOT_PASSWORD', '')),
+    'host': os.getenv('MYSQL_HOST', 'localhost'),
+    'port': int(os.getenv('MYSQL_PORT', 3306)),
+    'database': os.getenv('MYSQL_DATABASE', 'dataviper_test')
+})
+client = dataviper.Client(source)
+
+with client.connect():
+    profile = client.profile(table_name)
+    profile.to_excel()
