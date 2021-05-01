@@ -16,6 +16,13 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/otiai10/dataviper",
     packages=setuptools.find_packages(),
+    keywords=[
+        'data', 'profile', 'quality', 'assessment',
+        'mysql', 'sqlserver', 'csv', 'excel',
+    ],
+    scripts=[
+        'bin/dataviper'
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
