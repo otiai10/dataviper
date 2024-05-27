@@ -23,7 +23,7 @@ setuptools.setup(
     install_requires=[
         'pandas==1.0.3',
         'openpyxl==3.0.3',
-        'pymysql==0.9.3',
+        'pymysql==1.1.1',
         'pypyodbc==1.3.4.3',
         'matplotlib-venn==0.11.5',
     ],
